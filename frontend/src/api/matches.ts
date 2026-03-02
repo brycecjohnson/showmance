@@ -24,7 +24,7 @@ export function updateMatch(
   tmdbId: number,
   updates: { watched?: boolean },
 ): Promise<void> {
-  if (MOCK_ENABLED) return mock.updateMatch();
+  if (MOCK_ENABLED) return mock.updateMatch(code, tmdbId, updates);
   return patch(`/matches/${code}/${tmdbId}`, updates);
 }
 

@@ -1,0 +1,140 @@
+.tonights-pick-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 900;
+  padding: 1rem;
+}
+
+.tonights-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  max-width: 340px;
+  width: 100%;
+  max-height: 90dvh;
+  overflow-y: auto;
+  text-align: center;
+  perspective: 1000px;
+}
+
+.tonights-pick__heading {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-accent);
+  margin: 0;
+}
+
+.tonights-pick__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem 0;
+}
+
+.tonights-pick__loading-text {
+  color: var(--color-text-secondary);
+  font-size: 0.9375rem;
+  margin: 0;
+}
+
+.tonights-pick__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem 0;
+  color: var(--color-text-secondary);
+}
+
+.tonights-pick__empty p {
+  margin: 0;
+}
+
+.tonights-pick__empty-sub {
+  font-size: 0.875rem;
+  opacity: 0.7;
+}
+
+.tonights-pick__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  transform-style: preserve-3d;
+}
+
+.tonights-pick__poster {
+  width: 200px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.tonights-pick__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.tonights-pick__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9375rem;
+  color: var(--color-text-secondary);
+}
+
+.tonights-pick__rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #fbbf24;
+}
+
+.tonights-pick__genres {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.375rem;
+}
+
+.tonights-pick__genre-tag {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.625rem;
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+}
+
+.tonights-pick__services {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.375rem;
+}
+
+.tonights-pick__service-tag {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.625rem;
+  background: rgba(255, 107, 74, 0.15);
+  border: 1px solid rgba(255, 107, 74, 0.3);
+  border-radius: var(--radius-full);
+  color: var(--color-accent);
+}
+
+.tonights-pick__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}

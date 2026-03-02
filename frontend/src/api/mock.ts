@@ -42,8 +42,37 @@ const MOCK_CARDS: Card[] = [
   { tmdb_id: 603, media_type: 'movie', title: 'The Matrix', poster_path: '/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg', backdrop_path: null, overview: 'A computer hacker learns about the true nature of his reality and his role in the war against its controllers.', release_year: 1999, rating: 8.2, genre_ids: [28, 878], genre_names: ['Action', 'Sci-Fi'], runtime: 136 },
 ];
 
-// Track swipes in memory for match simulation
+// Track swipes and matches in memory for mock simulation
 const swipedRight = new Set<number>();
+const mockMatches = new Map<number, Match>();
+const mockWatched = new Set<number>();
+
+const MOCK_SERVICES = ['netflix', 'hulu', 'disney_plus', 'hbo_max', 'amazon_prime'];
+
+function cardToMatch(card: Card): Match {
+  return {
+    tmdb_id: card.tmdb_id,
+    title: card.title,
+    poster_path: card.poster_path,
+    media_type: card.media_type as Match['media_type'],
+    matched_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+    watched: mockWatched.has(card.tmdb_id),
+    watched_at: mockWatched.has(card.tmdb_id) ? new Date().toISOString() : null,
+    rating: card.rating,
+    release_year: card.release_year,
+    genre_names: card.genre_names,
+    streaming_services: [MOCK_SERVICES[Math.floor(Math.random() * MOCK_SERVICES.length)]],
+  };
+}
+
+// Seed some initial matches so the list isn't empty
+function ensureSeedMatches() {
+  if (mockMatches.size > 0) return;
+  const seedCards = MOCK_CARDS.filter((_, i) => i < 8);
+  seedCards.forEach((card) => {
+    mockMatches.set(card.tmdb_id, cardToMatch(card));
+  });
+}
 
 export const mock = {
   createRoom(): Promise<{ room_code: string; partner_id: string }> {
@@ -83,6 +112,9 @@ export const mock = {
       swipedRight.add(payload.tmdb_id);
       const card = MOCK_CARDS.find((c) => c.tmdb_id === payload.tmdb_id);
       if (matched && card) {
+        const match = cardToMatch(card);
+        match.matched_at = new Date().toISOString();
+        mockMatches.set(card.tmdb_id, match);
         return delay({
           matched: true,
           match: {
@@ -97,31 +129,40 @@ export const mock = {
     return delay({ matched: false });
   },
 
-  getMatches(_code: string, _mode: string): Promise<{ matches: Match[] }> {
-    return delay({ matches: [] });
+  getMatches(_code: string, mode: string): Promise<{ matches: Match[] }> {
+    ensureSeedMatches();
+    const matches = Array.from(mockMatches.values())
+      .filter((m) => m.media_type === mode)
+      .map((m) => ({
+        ...m,
+        watched: mockWatched.has(m.tmdb_id),
+        watched_at: mockWatched.has(m.tmdb_id) ? new Date().toISOString() : null,
+      }));
+    return delay({ matches });
   },
 
-  updateMatch(): Promise<void> {
+  updateMatch(_code: string, tmdbId: number, updates: { watched?: boolean }): Promise<void> {
+    if (updates.watched) {
+      mockWatched.add(tmdbId);
+    } else {
+      mockWatched.delete(tmdbId);
+    }
     return delay(undefined as unknown as void);
   },
 
-  getTonightsPick(_code: string, _mode: string): Promise<{ match: Match }> {
-    const card = MOCK_CARDS[Math.floor(Math.random() * MOCK_CARDS.length)];
-    return delay({
-      match: {
-        tmdb_id: card.tmdb_id,
-        title: card.title,
-        poster_path: card.poster_path,
-        media_type: card.media_type,
-        matched_at: new Date().toISOString(),
-        watched: false,
-        watched_at: null,
-        rating: card.rating,
-        release_year: card.release_year,
-        genre_names: card.genre_names,
-        streaming_services: ['netflix'],
-      },
-    });
+  getTonightsPick(_code: string, mode: string): Promise<{ match: Match }> {
+    ensureSeedMatches();
+    const unwatched = Array.from(mockMatches.values())
+      .filter((m) => m.media_type === mode && !mockWatched.has(m.tmdb_id));
+    if (unwatched.length > 0) {
+      const pick = unwatched[Math.floor(Math.random() * unwatched.length)];
+      return delay({ match: pick });
+    }
+    // Fallback to a random card if no unwatched matches
+    const card = MOCK_CARDS.filter((c) => c.media_type === mode)[
+      Math.floor(Math.random() * MOCK_CARDS.filter((c) => c.media_type === mode).length)
+    ];
+    return delay({ match: cardToMatch(card) });
   },
 };
 
