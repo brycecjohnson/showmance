@@ -1,0 +1,215 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Showmance - Couples movie/show matching PWA backend
+
+Globals:
+  Function:
+    Runtime: python3.12
+    MemorySize: 128
+    Timeout: 10
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref ShowmanceTable
+        TMDB_API_KEY: '{{resolve:ssm:/showmance/tmdb-api-key}}'
+    Layers:
+      - !Ref SharedLayer
+
+Resources:
+  # --- DynamoDB ---
+  ShowmanceTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: showmance
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+        - AttributeName: GSI1SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+            - AttributeName: GSI1SK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  # --- Shared Layer ---
+  SharedLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: showmance-shared
+      Description: Shared utilities for Showmance Lambdas
+      ContentUri: layers/shared/
+      CompatibleRuntimes:
+        - python3.12
+    Metadata:
+      BuildMethod: python3.12
+
+  # --- API Gateway ---
+  ShowmanceApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - GET
+          - POST
+          - PATCH
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - X-Partner-Id
+        MaxAge: 300
+
+  # --- Lambda Functions ---
+  CreateRoomFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: showmance-create-room
+      Handler: app.handler
+      CodeUri: functions/create_room/
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ShowmanceApi
+            Path: /rooms
+            Method: POST
+
+  JoinRoomFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: showmance-join-room
+      Handler: app.handler
+      CodeUri: functions/join_room/
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ShowmanceApi
+            Path: /rooms/{code}/join
+            Method: POST
+
+  GetRoomFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: showmance-get-room
+      Handler: app.handler
+      CodeUri: functions/get_room/
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ShowmanceApi
+            Path: /rooms/{code}
+            Method: GET
+
+  SavePreferencesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: showmance-save-preferences
+      Handler: app.handler
+      CodeUri: functions/save_preferences/
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ShowmanceApi
+            Path: /rooms/{code}/preferences
+            Method: POST
+
+  GetCardsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: showmance-get-cards
+      Handler: app.handler
+      CodeUri: functions/get_cards/
+      Timeout: 15
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ShowmanceApi
+            Path: /cards/{code}
+            Method: GET
+
+  RecordSwipeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: showmance-record-swipe
+      Handler: app.handler
+      CodeUri: functions/record_swipe/
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ShowmanceApi
+            Path: /swipe
+            Method: POST
+
+  GetMatchesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: showmance-get-matches
+      Handler: app.handler
+      CodeUri: functions/get_matches/
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ShowmanceApi
+            Path: /matches/{code}
+            Method: GET
+
+  UpdateMatchFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: showmance-update-match
+      Handler: app.handler
+      CodeUri: functions/update_match/
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ShowmanceApi
+            Path: /matches/{code}/{tmdb_id}
+            Method: PATCH
+
+  TonightsPickFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: showmance-tonights-pick
+      Handler: app.handler
+      CodeUri: functions/tonights_pick/
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ShowmanceApi
+            Path: /tonight/{code}
+            Method: GET
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway URL
+    Value: !Sub "https://${ShowmanceApi}.execute-api.${AWS::Region}.amazonaws.com"
+  TableName:
+    Description: DynamoDB table name
+    Value: !Ref ShowmanceTable

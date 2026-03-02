@@ -1,0 +1,44 @@
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 2rem;
+}
+
+.onboarding__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 1rem;
+  text-align: center;
+}
+
+.onboarding__subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin: 0 0 1.5rem;
+  text-align: center;
+}
+
+.onboarding__mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 320px;
+}
+
+.onboarding__spacer {
+  height: 1.5rem;
+}
+
+.onboarding__saving {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  color: var(--color-text-secondary);
+}

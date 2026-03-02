@@ -1,0 +1,66 @@
+.era-select {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  max-width: 400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.era-select__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.era-select__subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+  text-align: center;
+}
+
+.era-select__options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.era-select__pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  font-family: inherit;
+}
+
+.era-select__pill--active {
+  border-color: var(--color-accent);
+  background: rgba(255, 107, 74, 0.1);
+}
+
+.era-select__pill-label {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.era-select__pill-range {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.era-select__pill--active .era-select__pill-label {
+  color: var(--color-accent);
+}

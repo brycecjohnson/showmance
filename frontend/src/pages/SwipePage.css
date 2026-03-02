@@ -1,0 +1,33 @@
+.swipe-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding-bottom: var(--nav-height);
+}
+
+.swipe-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.swipe-page__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  margin: 0;
+}
+
+.swipe-page__deck {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.swipe-page__placeholder {
+  color: var(--color-text-secondary);
+  text-align: center;
+}

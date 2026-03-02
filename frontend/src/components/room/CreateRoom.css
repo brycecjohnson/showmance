@@ -1,0 +1,10 @@
+.create-room {
+  width: 100%;
+}
+
+.create-room__error {
+  color: var(--color-error);
+  font-size: 0.875rem;
+  text-align: center;
+  margin: 0.5rem 0 0;
+}

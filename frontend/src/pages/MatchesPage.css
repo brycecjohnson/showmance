@@ -1,0 +1,33 @@
+.matches-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding-bottom: var(--nav-height);
+}
+
+.matches-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.matches-page__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.matches-page__list {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.matches-page__placeholder {
+  color: var(--color-text-secondary);
+  text-align: center;
+}
