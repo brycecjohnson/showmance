@@ -6,13 +6,15 @@ import { ModeToggle } from '../components/layout/ModeToggle';
 import { RoomSetup } from '../components/room/RoomSetup';
 import { GenreSwipe } from '../components/onboarding/GenreSwipe';
 import { EraSelect } from '../components/onboarding/EraSelect';
+import { SeedSwipe } from '../components/onboarding/SeedSwipe';
+import { CompatReveal } from '../components/onboarding/CompatReveal';
 import { Button } from '../components/ui/Button';
 import { Spinner } from '../components/ui/Spinner';
 import { savePreferences } from '../api/rooms';
 import { isOnboardingComplete, setOnboardingComplete } from '../utils/storage';
 import './OnboardingPage.css';
 
-type Step = 'services' | 'mode' | 'genres' | 'eras' | 'saving';
+type Step = 'services' | 'mode' | 'genres' | 'eras' | 'seed' | 'compat' | 'saving';
 
 export function OnboardingPage() {
   const navigate = useNavigate();
@@ -24,6 +26,8 @@ export function OnboardingPage() {
   const [services, setServices] = useState<string[]>([]);
   const [genresLiked, setGenresLiked] = useState<string[]>([]);
   const [genresDisliked, setGenresDisliked] = useState<string[]>([]);
+  const [eras, setEras] = useState<string[]>([]);
+  const [seedLiked, setSeedLiked] = useState<number[]>([]);
 
   // If onboarding already done, just show mode pick then go to swipe
   if (isOnboardingComplete()) {
@@ -55,7 +59,17 @@ export function OnboardingPage() {
     setStep('eras');
   };
 
-  const handleErasComplete = async (eras: string[]) => {
+  const handleErasComplete = (selectedEras: string[]) => {
+    setEras(selectedEras);
+    setStep('seed');
+  };
+
+  const handleSeedComplete = (liked: number[], _disliked: number[]) => {
+    setSeedLiked(liked);
+    setStep('compat');
+  };
+
+  const handleCompatComplete = async () => {
     if (!roomCode) return;
     setStep('saving');
     try {
@@ -64,12 +78,12 @@ export function OnboardingPage() {
         genres_disliked: genresDisliked,
         eras,
         streaming_services: services,
+        seed_liked: seedLiked,
       });
       setOnboardingComplete(true);
       navigate('/swipe');
     } catch {
-      // On error, go back to eras
-      setStep('eras');
+      setStep('compat');
     }
   };
 
@@ -96,6 +110,18 @@ export function OnboardingPage() {
 
       {step === 'eras' && (
         <EraSelect onComplete={handleErasComplete} />
+      )}
+
+      {step === 'seed' && (
+        <SeedSwipe onComplete={handleSeedComplete} />
+      )}
+
+      {step === 'compat' && (
+        <CompatReveal
+          genresLiked={genresLiked}
+          seedLiked={seedLiked}
+          onComplete={handleCompatComplete}
+        />
       )}
 
       {step === 'saving' && (

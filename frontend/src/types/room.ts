@@ -15,6 +15,7 @@ export interface Preferences {
   genres_disliked: string[];
   eras: string[];
   streaming_services: string[];
+  seed_liked?: number[];
 }
 
 export interface RoomState {
