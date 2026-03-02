@@ -24,8 +24,8 @@
 
 .match-filters__chip {
   flex-shrink: 0;
-  min-height: 32px;
-  padding: 0.25rem 0.75rem;
+  min-height: 36px;
+  padding: 0.375rem 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
   background: transparent;
@@ -34,13 +34,17 @@
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s, transform 0.1s;
   -webkit-tap-highlight-color: transparent;
 }
 
 .match-filters__chip:hover {
   background: var(--color-surface-hover);
   color: var(--color-text);
+}
+
+.match-filters__chip:active {
+  transform: scale(0.95);
 }
 
 .match-filters__chip--active {

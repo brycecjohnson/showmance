@@ -6,3 +6,10 @@
   margin: 0 auto;
   position: relative;
 }
+
+@media (min-width: 768px) {
+  .app-shell {
+    background-color: var(--color-bg);
+    box-shadow: -1px 0 0 var(--color-border), 1px 0 0 var(--color-border);
+  }
+}

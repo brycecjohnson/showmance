@@ -23,9 +23,10 @@
 
 .swipe-card__poster {
   width: 100%;
-  height: 380px;
+  flex: 1;
   object-fit: cover;
   pointer-events: none;
+  min-height: 0;
 }
 
 .swipe-card__poster--empty {

@@ -58,4 +58,5 @@ export const STORAGE_KEYS = {
   MODE: 'showmance_mode',
   ONBOARDING_COMPLETE: 'showmance_onboarding_complete',
   LAST_SEEN_MATCHES: 'showmance_last_seen_matches',
+  INSTALL_DISMISSED: 'showmance_install_dismissed',
 } as const;

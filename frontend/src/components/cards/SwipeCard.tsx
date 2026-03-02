@@ -7,6 +7,7 @@ import {
   type PanInfo,
 } from 'framer-motion';
 import { SWIPE_THRESHOLD, CARD_ROTATION_FACTOR, TMDB_IMAGE_BASE } from '../../utils/constants';
+import { PosterImage } from '../ui/PosterImage';
 import type { Card } from '../../types/card';
 import './SwipeCard.css';
 
@@ -15,9 +16,10 @@ interface SwipeCardProps {
   onSwipe: (direction: 'left' | 'right') => void;
   isTop: boolean;
   stackIndex: number;
+  onTap?: (card: Card) => void;
 }
 
-export function SwipeCard({ card, onSwipe, isTop, stackIndex }: SwipeCardProps) {
+export function SwipeCard({ card, onSwipe, isTop, stackIndex, onTap }: SwipeCardProps) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-CARD_ROTATION_FACTOR, CARD_ROTATION_FACTOR]);
   const likeOpacity = useTransform(x, [0, SWIPE_THRESHOLD], [0, 1]);
@@ -50,6 +52,10 @@ export function SwipeCard({ card, onSwipe, isTop, stackIndex }: SwipeCardProps) 
     },
     [x, onSwipe],
   );
+
+  const handleTap = useCallback(() => {
+    onTap?.(card);
+  }, [onTap, card]);
 
   // Expose triggerSwipe on the component instance via a data attribute
   // so CardStack can call it programmatically
@@ -91,6 +97,7 @@ export function SwipeCard({ card, onSwipe, isTop, stackIndex }: SwipeCardProps) 
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={1}
       onDragEnd={handleDragEnd}
+      onTap={handleTap}
     >
       <motion.div
         className="swipe-card__overlay swipe-card__overlay--like"
@@ -106,7 +113,7 @@ export function SwipeCard({ card, onSwipe, isTop, stackIndex }: SwipeCardProps) 
       </motion.div>
 
       {card.poster_path ? (
-        <img
+        <PosterImage
           className="swipe-card__poster"
           src={`${TMDB_IMAGE_BASE}/w500${card.poster_path}`}
           alt={card.title}

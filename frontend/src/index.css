@@ -77,3 +77,17 @@ body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Ensure minimum readable font size on small screens */
+@media (max-width: 374px) {
+  body {
+    font-size: 14px;
+  }
+}
+
+/* Desktop: center app with subtle side borders */
+@media (min-width: 768px) {
+  body {
+    background-color: #0a0a0e;
+  }
+}

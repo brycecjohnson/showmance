@@ -4,7 +4,9 @@ import { useModeContext } from '../../context/ModeContext';
 import { useMatches } from '../../hooks/useMatches';
 import { MatchItem } from './MatchItem';
 import { MatchFilters, type SortOption } from './MatchFilters';
-import { Spinner } from '../ui/Spinner';
+import { CardDetail } from '../cards/CardDetail';
+import type { Card } from '../../types/card';
+import type { Match } from '../../types/match';
 import './MatchList.css';
 
 interface MatchListProps {
@@ -19,6 +21,7 @@ export function MatchList({ onMatchCount }: MatchListProps) {
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('matched_at');
   const [showWatched, setShowWatched] = useState(false);
+  const [detailMatch, setDetailMatch] = useState<Match | null>(null);
 
   useEffect(() => {
     fetchMatches();
@@ -76,10 +79,50 @@ export function MatchList({ onMatchCount }: MatchListProps) {
     [markWatched],
   );
 
+  const handleMatchTap = useCallback((match: Match) => {
+    setDetailMatch(match);
+  }, []);
+
+  const handleDetailClose = useCallback(() => {
+    setDetailMatch(null);
+  }, []);
+
+  const handleDetailMarkWatched = useCallback(() => {
+    if (detailMatch) {
+      markWatched(detailMatch.tmdb_id);
+      setDetailMatch(null);
+    }
+  }, [detailMatch, markWatched]);
+
+  const detailCard: Card | null = detailMatch
+    ? {
+        tmdb_id: detailMatch.tmdb_id,
+        media_type: detailMatch.media_type,
+        title: detailMatch.title,
+        poster_path: detailMatch.poster_path,
+        backdrop_path: null,
+        overview: '',
+        release_year: detailMatch.release_year,
+        rating: detailMatch.rating,
+        genre_ids: [],
+        genre_names: detailMatch.genre_names,
+        streaming_services: detailMatch.streaming_services,
+      }
+    : null;
+
   if (isLoading && matches.length === 0) {
     return (
-      <div className="match-list__loading">
-        <Spinner />
+      <div className="match-list__skeleton-wrap">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="match-list__skeleton-row">
+            <div className="match-list__skeleton-poster" />
+            <div className="match-list__skeleton-content">
+              <div className="match-list__skeleton-line match-list__skeleton-line--title" />
+              <div className="match-list__skeleton-line match-list__skeleton-line--meta" />
+              <div className="match-list__skeleton-line match-list__skeleton-line--tags" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -125,11 +168,20 @@ export function MatchList({ onMatchCount }: MatchListProps) {
                 key={match.tmdb_id}
                 match={match}
                 onMarkWatched={handleMarkWatched}
+                onTap={handleMatchTap}
               />
             ))}
           </AnimatePresence>
         </div>
       )}
+
+      <CardDetail
+        card={detailCard}
+        isOpen={detailMatch !== null}
+        onClose={handleDetailClose}
+        onMarkWatched={handleDetailMarkWatched}
+        isWatched={detailMatch?.watched}
+      />
     </div>
   );
 }

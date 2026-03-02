@@ -3,10 +3,12 @@
   "short_name": "Showmance",
   "description": "Swipe together. Watch together. Find your next movie or show with your partner.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f0f14",
   "theme_color": "#0f0f14",
   "orientation": "portrait",
+  "categories": ["entertainment", "lifestyle"],
   "icons": [
     {
       "src": "/icon-192.png",

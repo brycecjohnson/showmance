@@ -10,9 +10,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   width: 100%;
-  max-width: 400px;
+  max-width: 480px;
 }
 
 .swipe-page__title {
@@ -39,12 +39,12 @@
 .swipe-page__actions {
   display: flex;
   gap: 2.5rem;
-  padding: 1rem 0 1.5rem;
+  padding: 0.75rem 0 1.25rem;
 }
 
 .swipe-page__btn {
-  width: 64px;
-  height: 64px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   border: 2px solid;
   background: transparent;
@@ -61,8 +61,8 @@
 }
 
 .swipe-page__btn svg {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
 }
 
 .swipe-page__btn--nope {
@@ -81,4 +81,17 @@
 
 .swipe-page__btn--like:hover {
   background: rgba(67, 160, 71, 0.1);
+}
+
+/* Responsive: slightly larger action buttons on bigger screens */
+@media (min-width: 400px) {
+  .swipe-page__btn {
+    width: 64px;
+    height: 64px;
+  }
+
+  .swipe-page__btn svg {
+    width: 28px;
+    height: 28px;
+  }
 }

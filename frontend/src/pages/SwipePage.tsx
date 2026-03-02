@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ModeToggle } from '../components/layout/ModeToggle';
 import { CardStack } from '../components/cards/CardStack';
+import { CardDetail } from '../components/cards/CardDetail';
 import { MatchPopup } from '../components/ui/MatchPopup';
+import { Toast } from '../components/ui/Toast';
 import { useSwipe } from '../hooks/useSwipe';
 import { useCards } from '../hooks/useCards';
+import { useToast } from '../hooks/useToast';
+import type { Card } from '../types/card';
 import type { SwipeDirection } from '../types/swipe';
 import './SwipePage.css';
 
@@ -12,6 +16,8 @@ export function SwipePage() {
   const { cards } = useCards();
   const triggerRef = useRef<((dir: 'left' | 'right') => void) | null>(null);
   const [matchInfo, setMatchInfo] = useState<{ title: string; posterPath: string | null } | null>(null);
+  const [detailCard, setDetailCard] = useState<Card | null>(null);
+  const { toast, showToast, clearToast } = useToast();
 
   const handleSwipe = useCallback(
     async (tmdbId: number, direction: SwipeDirection) => {
@@ -26,16 +32,38 @@ export function SwipePage() {
           });
         }
       } catch {
-        // Swipe API failure is non-blocking — card is already removed
+        showToast('Swipe failed to save. Keep going — we\'ll retry.');
       }
     },
-    [cards, swipe],
+    [cards, swipe, showToast],
   );
 
   const handleCloseMatch = useCallback(() => {
     setMatchInfo(null);
     clearResult();
   }, [clearResult]);
+
+  const handleCardTap = useCallback((card: Card) => {
+    setDetailCard(card);
+  }, []);
+
+  const handleDetailClose = useCallback(() => {
+    setDetailCard(null);
+  }, []);
+
+  const handleDetailLike = useCallback(() => {
+    if (detailCard) {
+      setDetailCard(null);
+      triggerRef.current?.('right');
+    }
+  }, [detailCard]);
+
+  const handleDetailPass = useCallback(() => {
+    if (detailCard) {
+      setDetailCard(null);
+      triggerRef.current?.('left');
+    }
+  }, [detailCard]);
 
   // Desktop keyboard support
   useEffect(() => {
@@ -58,7 +86,7 @@ export function SwipePage() {
       </header>
 
       <div className="swipe-page__deck">
-        <CardStack onSwipe={handleSwipe} triggerRef={triggerRef} />
+        <CardStack onSwipe={handleSwipe} triggerRef={triggerRef} onCardTap={handleCardTap} onError={showToast} />
       </div>
 
       <div className="swipe-page__actions">
@@ -90,6 +118,18 @@ export function SwipePage() {
         posterPath={matchInfo?.posterPath ?? null}
         onClose={handleCloseMatch}
       />
+
+      <CardDetail
+        card={detailCard}
+        isOpen={detailCard !== null}
+        onClose={handleDetailClose}
+        onLike={handleDetailLike}
+        onPass={handleDetailPass}
+      />
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={clearToast} />
+      )}
     </div>
   );
 }
