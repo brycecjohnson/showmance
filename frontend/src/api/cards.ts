@@ -1,4 +1,5 @@
 import { get } from './client';
+import { mock, MOCK_ENABLED } from './mock';
 import type { Card } from '../types/card';
 import type { MediaMode } from '../types/room';
 
@@ -11,5 +12,6 @@ export function getCards(
   code: string,
   mode: MediaMode,
 ): Promise<GetCardsResponse> {
+  if (MOCK_ENABLED) return mock.getCards(code, mode);
   return get<GetCardsResponse>(`/cards/${code}?mode=${mode}`);
 }
