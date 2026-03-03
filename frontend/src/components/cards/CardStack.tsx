@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { SwipeCard } from './SwipeCard';
 import { useCards } from '../../hooks/useCards';
+import { useModeContext } from '../../context/ModeContext';
 import type { Card } from '../../types/card';
 import type { SwipeDirection } from '../../types/swipe';
 import './CardStack.css';
@@ -16,8 +17,15 @@ interface CardStackProps {
 
 export function CardStack({ onSwipe, triggerRef, onCardTap, onError }: CardStackProps) {
   const { cards, isLoading, hasMore, fetchCards, removeTopCard } = useCards();
+  const { mode } = useModeContext();
   const hasFetched = useRef(false);
   const [fetchError, setFetchError] = useState(false);
+
+  // Reset hasFetched when mode changes so initial fetch re-triggers
+  useEffect(() => {
+    hasFetched.current = false;
+    setFetchError(false);
+  }, [mode]);
 
   useEffect(() => {
     if (!hasFetched.current) {
@@ -47,18 +55,18 @@ export function CardStack({ onSwipe, triggerRef, onCardTap, onError }: CardStack
     [cards, removeTopCard, onSwipe],
   );
 
+  // Ref to the top card's triggerSwipe function
+  const topCardTrigger = useRef<((dir: 'left' | 'right') => void) | null>(null);
+
   // Expose a trigger function so parent can programmatically swipe
   useEffect(() => {
     triggerRef.current = (dir: 'left' | 'right') => {
-      const fn = (SwipeCard as unknown as Record<string, unknown>)._triggerSwipe as
-        | ((d: 'left' | 'right') => void)
-        | undefined;
-      if (fn) fn(dir);
+      topCardTrigger.current?.(dir);
     };
     return () => {
       triggerRef.current = null;
     };
-  }, [triggerRef, cards]);
+  }, [triggerRef]);
 
   if (isLoading && cards.length === 0) {
     return (
@@ -119,6 +127,7 @@ export function CardStack({ onSwipe, triggerRef, onCardTap, onError }: CardStack
           isTop={index === 0}
           stackIndex={index}
           onTap={onCardTap}
+          triggerRef={index === 0 ? topCardTrigger : undefined}
         />
       ))}
     </div>

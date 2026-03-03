@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
   motion,
   useMotionValue,
@@ -17,9 +17,10 @@ interface SwipeCardProps {
   isTop: boolean;
   stackIndex: number;
   onTap?: (card: Card) => void;
+  triggerRef?: React.MutableRefObject<((dir: 'left' | 'right') => void) | null>;
 }
 
-export function SwipeCard({ card, onSwipe, isTop, stackIndex, onTap }: SwipeCardProps) {
+export function SwipeCard({ card, onSwipe, isTop, stackIndex, onTap, triggerRef }: SwipeCardProps) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-CARD_ROTATION_FACTOR, CARD_ROTATION_FACTOR]);
   const likeOpacity = useTransform(x, [0, SWIPE_THRESHOLD], [0, 1]);
@@ -57,11 +58,17 @@ export function SwipeCard({ card, onSwipe, isTop, stackIndex, onTap }: SwipeCard
     onTap?.(card);
   }, [onTap, card]);
 
-  // Expose triggerSwipe on the component instance via a data attribute
-  // so CardStack can call it programmatically
-  if (isTop) {
-    (SwipeCard as unknown as Record<string, unknown>)._triggerSwipe = triggerSwipe;
-  }
+  // Expose triggerSwipe via ref so CardStack can call it programmatically
+  useEffect(() => {
+    if (triggerRef) {
+      triggerRef.current = triggerSwipe;
+    }
+    return () => {
+      if (triggerRef) {
+        triggerRef.current = null;
+      }
+    };
+  }, [triggerRef, triggerSwipe]);
 
   const scale = 1 - stackIndex * 0.05;
   const translateY = stackIndex * 8;
@@ -75,12 +82,16 @@ export function SwipeCard({ card, onSwipe, isTop, stackIndex, onTap }: SwipeCard
           zIndex: 10 - stackIndex,
         }}
       >
-        {card.poster_path && (
-          <img
+        {card.poster_path ? (
+          <PosterImage
             className="swipe-card__poster"
             src={`${TMDB_IMAGE_BASE}/w500${card.poster_path}`}
             alt={card.title}
           />
+        ) : (
+          <div className="swipe-card__poster swipe-card__poster--empty">
+            No Image
+          </div>
         )}
         <div className="swipe-card__info">
           <span className="swipe-card__title">{card.title}</span>

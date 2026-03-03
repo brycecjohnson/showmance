@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
@@ -70,9 +70,11 @@ export function TonightsPick({ isOpen, onClose, onPick, onWatched }: TonightsPic
   }, [onClose]);
 
   // Trigger fetch when overlay opens
-  if (isOpen && !pick && !isLoading) {
-    handleOpen();
-  }
+  useEffect(() => {
+    if (isOpen && !pick && !isLoading) {
+      handleOpen();
+    }
+  }, [isOpen, pick, isLoading, handleOpen]);
 
   return (
     <AnimatePresence>

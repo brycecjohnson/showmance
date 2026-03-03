@@ -1,4 +1,5 @@
 import { useRoomContext } from '../../context/RoomContext';
+import * as storage from '../../utils/storage';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
 import './CreateRoom.css';
@@ -12,7 +13,9 @@ export function CreateRoom({ onCreated }: CreateRoomProps) {
 
   const handleCreate = async () => {
     await createRoom();
-    onCreated();
+    if (storage.getRoomCode()) {
+      onCreated();
+    }
   };
 
   return (

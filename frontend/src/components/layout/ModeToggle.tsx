@@ -7,12 +7,14 @@ export function ModeToggle() {
   return (
     <div className="mode-toggle">
       <button
+        type="button"
         className={`mode-toggle__option ${mode === 'movie' ? 'mode-toggle__option--active' : ''}`}
         onClick={() => setMode('movie')}
       >
         Movie
       </button>
       <button
+        type="button"
         className={`mode-toggle__option ${mode === 'tv' ? 'mode-toggle__option--active' : ''}`}
         onClick={() => setMode('tv')}
       >

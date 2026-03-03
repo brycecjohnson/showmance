@@ -8,6 +8,7 @@ import {
 } from 'framer-motion';
 import { SWIPE_THRESHOLD, CARD_ROTATION_FACTOR, TMDB_IMAGE_BASE } from '../../utils/constants';
 import { Button } from '../ui/Button';
+import { PosterImage } from '../ui/PosterImage';
 import './SeedSwipe.css';
 
 interface SeedTitle {
@@ -141,7 +142,7 @@ export function SeedSwipe({ onComplete }: SeedSwipeProps) {
         {/* Next card (static background) */}
         {currentIndex + 1 < SEED_TITLES.length && (
           <div className="seed-card seed-card--next">
-            <img
+            <PosterImage
               className="seed-card__poster"
               src={`${TMDB_IMAGE_BASE}/w500${SEED_TITLES[currentIndex + 1].poster_path}`}
               alt={SEED_TITLES[currentIndex + 1].title}
@@ -164,7 +165,7 @@ export function SeedSwipe({ onComplete }: SeedSwipeProps) {
           <motion.div className="seed-card__overlay seed-card__overlay--nope" style={{ opacity: nopeOpacity }}>
             NOPE
           </motion.div>
-          <img
+          <PosterImage
             className="seed-card__poster"
             src={`${TMDB_IMAGE_BASE}/w500${seed.poster_path}`}
             alt={seed.title}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import './PosterImage.css';
 
 interface PosterImageProps {
@@ -12,6 +12,11 @@ interface PosterImageProps {
 export function PosterImage({ src, alt, className = '', lazy = false, draggable }: PosterImageProps) {
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
+
+  useEffect(() => {
+    setLoaded(false);
+    setErrored(false);
+  }, [src]);
 
   const handleLoad = useCallback(() => setLoaded(true), []);
   const handleError = useCallback(() => setErrored(true), []);

@@ -44,6 +44,7 @@ const MOCK_CARDS: Card[] = [
 
 // Track swipes and matches in memory for mock simulation
 const swipedRight = new Set<number>();
+const mockSwiped = new Set<string>(); // tracks "${media_type}:${tmdb_id}" to filter from getCards
 const mockMatches = new Map<number, Match>();
 const mockWatched = new Set<number>();
 
@@ -65,10 +66,11 @@ function cardToMatch(card: Card): Match {
   };
 }
 
-// Seed some initial matches so the list isn't empty
-function ensureSeedMatches() {
-  if (mockMatches.size > 0) return;
-  const seedCards = MOCK_CARDS.filter((_, i) => i < 8);
+// Seed some initial matches so the list isn't empty (only for the requested mode)
+function ensureSeedMatches(mode: string) {
+  const hasMatchesForMode = Array.from(mockMatches.values()).some((m) => m.media_type === mode);
+  if (hasMatchesForMode) return;
+  const seedCards = MOCK_CARDS.filter((c) => c.media_type === mode).slice(0, 4);
   seedCards.forEach((card) => {
     mockMatches.set(card.tmdb_id, cardToMatch(card));
   });
@@ -99,13 +101,25 @@ export const mock = {
   },
 
   getCards(_code: string, mode: string): Promise<{ cards: Card[]; has_more: boolean }> {
-    const filtered = MOCK_CARDS.filter((c) => c.media_type === mode);
+    const filtered = MOCK_CARDS.filter(
+      (c) => c.media_type === mode && !mockSwiped.has(`${c.media_type}:${c.tmdb_id}`),
+    );
     // Shuffle
     const shuffled = [...filtered].sort(() => Math.random() - 0.5);
-    return delay({ cards: shuffled, has_more: true });
+    return delay({ cards: shuffled, has_more: shuffled.length > 0 });
   },
 
-  recordSwipe(payload: { tmdb_id: number; direction: string }): Promise<SwipeResult> {
+  recordSwipe(payload: {
+    tmdb_id: number;
+    direction: string;
+    media_type?: string;
+    room_code?: string;
+    partner_id?: string;
+    title?: string;
+  }): Promise<SwipeResult> {
+    const mediaType = payload.media_type ?? MOCK_CARDS.find((c) => c.tmdb_id === payload.tmdb_id)?.media_type ?? 'movie';
+    mockSwiped.add(`${mediaType}:${payload.tmdb_id}`);
+
     if (payload.direction === 'right') {
       // 30% chance of match for fun
       const matched = Math.random() < 0.3;
@@ -130,7 +144,7 @@ export const mock = {
   },
 
   getMatches(_code: string, mode: string): Promise<{ matches: Match[] }> {
-    ensureSeedMatches();
+    ensureSeedMatches(mode);
     const matches = Array.from(mockMatches.values())
       .filter((m) => m.media_type === mode)
       .map((m) => ({
@@ -151,7 +165,7 @@ export const mock = {
   },
 
   getTonightsPick(_code: string, mode: string): Promise<{ match: Match }> {
-    ensureSeedMatches();
+    ensureSeedMatches(mode);
     const unwatched = Array.from(mockMatches.values())
       .filter((m) => m.media_type === mode && !mockWatched.has(m.tmdb_id));
     if (unwatched.length > 0) {
