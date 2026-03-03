@@ -42,6 +42,9 @@ const MOCK_CARDS: Card[] = [
   { tmdb_id: 603, media_type: 'movie', title: 'The Matrix', poster_path: '/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg', backdrop_path: null, overview: 'A computer hacker learns about the true nature of his reality and his role in the war against its controllers.', release_year: 1999, rating: 8.2, genre_ids: [28, 878], genre_names: ['Action', 'Sci-Fi'], runtime: 136, director: 'Lana Wachowski', cast: [{ name: 'Keanu Reeves', character: 'Thomas A. Anderson / Neo', profile_path: null }, { name: 'Laurence Fishburne', character: 'Morpheus', profile_path: null }, { name: 'Carrie-Anne Moss', character: 'Trinity', profile_path: null }, { name: 'Hugo Weaving', character: 'Agent Smith', profile_path: null }, { name: 'Joe Pantoliano', character: 'Cypher', profile_path: null }] },
 ];
 
+// Track room solo state
+let mockIsSolo = false;
+
 // Track swipes and matches in memory for mock simulation
 const swipedRight = new Set<number>();
 const mockSwiped = new Set<string>(); // tracks "${media_type}:${tmdb_id}" to filter from getCards
@@ -77,7 +80,8 @@ function ensureSeedMatches(mode: string) {
 }
 
 export const mock = {
-  createRoom(): Promise<{ room_code: string; partner_id: string }> {
+  createRoom(solo?: boolean): Promise<{ room_code: string; partner_id: string }> {
+    mockIsSolo = solo ?? false;
     return delay({ room_code: randomCode(), partner_id: uuid() });
   },
 
@@ -89,10 +93,11 @@ export const mock = {
     return delay({
       room_code: code,
       created_at: new Date().toISOString(),
-      partner_1_id: uuid(),
-      partner_2_id: uuid(),
+      partner_number: 1,
+      other_partner_joined: !mockIsSolo,
       streaming_services: ['netflix', 'hulu'],
       onboarding_complete: false,
+      is_solo: mockIsSolo,
     });
   },
 
@@ -121,8 +126,8 @@ export const mock = {
     mockSwiped.add(`${mediaType}:${payload.tmdb_id}`);
 
     if (payload.direction === 'right') {
-      // 30% chance of match for fun
-      const matched = Math.random() < 0.3;
+      // Solo mode: always match. Couples: 30% chance of match for fun
+      const matched = mockIsSolo || Math.random() < 0.3;
       swipedRight.add(payload.tmdb_id);
       const card = MOCK_CARDS.find((c) => c.tmdb_id === payload.tmdb_id);
       if (matched && card) {

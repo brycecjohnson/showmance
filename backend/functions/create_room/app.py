@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 from shared.dynamo import put_item, get_item
 from shared.response import created, error, server_error
+from shared.validation import parse_body
 
 
 def _generate_room_code() -> str:
@@ -29,6 +30,9 @@ def _generate_unique_room_code(max_attempts: int = 10) -> str:
 
 def handler(event, context):
     try:
+        body = parse_body(event) or {}
+        is_solo = bool(body.get("solo", False))
+
         code = _generate_unique_room_code()
         partner_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc).isoformat()
@@ -41,6 +45,7 @@ def handler(event, context):
             "created_at": now,
             "streaming_services": [],
             "onboarding_complete": False,
+            "is_solo": is_solo,
         }
 
         put_item(item)

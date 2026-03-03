@@ -2,11 +2,12 @@ export type MediaMode = 'movie' | 'tv';
 
 export interface Room {
   room_code: string;
+  partner_number: number;
+  other_partner_joined: boolean;
   created_at: string;
-  partner_1_id: string;
-  partner_2_id: string | null;
   streaming_services: string[];
   onboarding_complete: boolean;
+  is_solo: boolean;
 }
 
 export interface Preferences {

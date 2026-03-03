@@ -10,6 +10,8 @@ interface RecordSwipePayload {
   direction: SwipeDirection;
   media_type: MediaMode;
   title: string;
+  poster_path?: string;
+  year?: string;
 }
 
 export function recordSwipe(

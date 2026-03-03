@@ -35,6 +35,7 @@ def handler(event, context):
             "created_at": room.get("created_at"),
             "streaming_services": room.get("streaming_services", []),
             "onboarding_complete": room.get("onboarding_complete", False),
+            "is_solo": room.get("is_solo", False),
         })
 
     except Exception as e:

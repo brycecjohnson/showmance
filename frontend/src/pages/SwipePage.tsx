@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ModeToggle } from '../components/layout/ModeToggle';
+import { RoomCodeChip } from '../components/ui/RoomCodeChip';
 import { CardStack } from '../components/cards/CardStack';
 import { CardDetail } from '../components/cards/CardDetail';
 import { MatchPopup } from '../components/ui/MatchPopup';
 import { Toast } from '../components/ui/Toast';
 import { useSwipe } from '../hooks/useSwipe';
+import { useRoomContext } from '../context/RoomContext';
 import { useToast } from '../hooks/useToast';
 import type { Card } from '../types/card';
 import type { SwipeDirection } from '../types/swipe';
@@ -12,6 +14,7 @@ import './SwipePage.css';
 
 export function SwipePage() {
   const { swipe, clearResult } = useSwipe();
+  const { isSolo } = useRoomContext();
   const triggerRef = useRef<((dir: 'left' | 'right') => void) | null>(null);
   const [matchInfo, setMatchInfo] = useState<{ title: string; posterPath: string | null } | null>(null);
   const [detailCard, setDetailCard] = useState<Card | null>(null);
@@ -26,7 +29,7 @@ export function SwipePage() {
       if (!swipeCard) return;
       try {
         const result = await swipe(swipeCard, direction);
-        if (result.matched && result.match) {
+        if (result.matched && result.match && !isSolo) {
           setMatchInfo({
             title: result.match.title,
             posterPath: result.match.poster_path,
@@ -36,7 +39,7 @@ export function SwipePage() {
         showToast('Swipe failed to save. Keep going — we\'ll retry.');
       }
     },
-    [swipe, showToast],
+    [swipe, showToast, isSolo],
   );
 
   const handleCloseMatch = useCallback(() => {
@@ -83,7 +86,10 @@ export function SwipePage() {
     <div className="swipe-page">
       <header className="swipe-page__header">
         <h1 className="swipe-page__title">Showmance</h1>
-        <ModeToggle />
+        <div className="swipe-page__controls">
+          <RoomCodeChip />
+          <ModeToggle />
+        </div>
       </header>
 
       <div className="swipe-page__deck">

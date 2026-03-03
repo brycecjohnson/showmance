@@ -11,7 +11,7 @@ type LandingView = 'home' | 'join' | 'created';
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const { roomCode } = useRoomContext();
+  const { roomCode, createRoom } = useRoomContext();
   const [view, setView] = useState<LandingView>('home');
 
   // If already in a room, redirect to onboarding/swipe
@@ -23,6 +23,11 @@ export function LandingPage() {
 
   const handleCreated = () => {
     setView('created');
+  };
+
+  const handleSolo = async () => {
+    await createRoom(true);
+    navigate('/onboarding');
   };
 
   const handleJoined = () => {
@@ -54,6 +59,13 @@ export function LandingPage() {
             <Button variant="secondary" fullWidth size="lg" onClick={() => setView('join')}>
               Join a Room
             </Button>
+            <div className="landing__divider">
+              <span>or</span>
+            </div>
+            <Button variant="secondary" fullWidth size="lg" onClick={handleSolo}>
+              Solo Mode
+            </Button>
+            <p className="landing__solo-hint">Pick shows for yourself</p>
           </>
         )}
 
@@ -65,6 +77,11 @@ export function LandingPage() {
           <RoomCreated roomCode={roomCode} onContinue={handleContinue} />
         )}
       </div>
+
+      <footer className="landing__attribution">
+        <img src="/tmdb-logo.svg" alt="TMDB" className="landing__tmdb-logo" />
+        <p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+      </footer>
     </div>
   );
 }

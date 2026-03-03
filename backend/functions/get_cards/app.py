@@ -10,6 +10,8 @@ Pipeline steps:
 7. Return batch of 20 cards
 """
 
+from typing import Optional
+
 from shared.dynamo import get_item, query_pk
 from shared.response import success, error, not_found, server_error
 from shared.validation import (
@@ -105,7 +107,7 @@ def _load_swiped_set(code: str, media_type: str, partner_id: str) -> set[int]:
 
 
 def _compute_genre_overlap(
-    prefs1: dict | None, prefs2: dict | None,
+    prefs1: Optional[dict], prefs2: Optional[dict],
 ) -> list[int]:
     """Compute genre overlap between two partners' preferences.
 
@@ -131,7 +133,7 @@ def _compute_genre_overlap(
     return [int(g) for g in overlap] + [int(g) for g in remaining]
 
 
-def _get_eras(prefs1: dict | None, prefs2: dict | None) -> list[str]:
+def _get_eras(prefs1: Optional[dict], prefs2: Optional[dict]) -> list[str]:
     """Get era preferences, preferring overlap."""
     eras1 = set(prefs1.get("eras", [])) if prefs1 else set()
     eras2 = set(prefs2.get("eras", [])) if prefs2 else set()
@@ -152,7 +154,7 @@ def _fetch_content(
     liked_genres: list[int],
     eras: list[str],
     streaming_services: list[str],
-    partner_prefs: dict | None,
+    partner_prefs: Optional[dict],
     page: int,
 ) -> list[dict]:
     """Fetch content from multiple TMDB sources and merge."""
@@ -271,7 +273,7 @@ def _score_and_rank(titles: list[dict], liked_genres: list[int]) -> list[dict]:
         score += card.get("popularity", 0) / max_pop
 
         # Rating bonus (0-2 range)
-        vote_avg = card.get("vote_average", 0)
+        vote_avg = card.get("rating", 0)
         if vote_avg >= 7:
             score += (vote_avg - 5) / 2.5
 

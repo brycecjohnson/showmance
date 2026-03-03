@@ -11,9 +11,9 @@ interface JoinRoomResponse {
   partner_id: string;
 }
 
-export function createRoom(): Promise<CreateRoomResponse> {
-  if (MOCK_ENABLED) return mock.createRoom();
-  return post<CreateRoomResponse>('/rooms');
+export function createRoom(solo?: boolean): Promise<CreateRoomResponse> {
+  if (MOCK_ENABLED) return mock.createRoom(solo);
+  return post<CreateRoomResponse>('/rooms', solo ? { solo: true } : undefined);
 }
 
 export function joinRoom(code: string): Promise<JoinRoomResponse> {

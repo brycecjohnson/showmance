@@ -1,15 +1,18 @@
 import { useState, useCallback } from 'react';
 import { ModeToggle } from '../components/layout/ModeToggle';
+import { RoomCodeChip } from '../components/ui/RoomCodeChip';
 import { MatchList } from '../components/matches/MatchList';
 import { TonightsPick } from '../components/matches/TonightsPick';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
+import { useRoomContext } from '../context/RoomContext';
 import { useMatches } from '../hooks/useMatches';
 import './MatchesPage.css';
 
 export function MatchesPage() {
   const [matchCount, setMatchCount] = useState(0);
   const [showPick, setShowPick] = useState(false);
+  const { isSolo } = useRoomContext();
   const { pickTonight, markWatched } = useMatches();
 
   const handleMatchCount = useCallback((count: number) => {
@@ -20,10 +23,13 @@ export function MatchesPage() {
     <div className="matches-page">
       <header className="matches-page__header">
         <div className="matches-page__title-row">
-          <h1 className="matches-page__title">Matches</h1>
+          <h1 className="matches-page__title">{isSolo ? 'Your Picks' : 'Matches'}</h1>
           <Badge count={matchCount} />
         </div>
-        <ModeToggle />
+        <div className="matches-page__controls">
+          <RoomCodeChip />
+          <ModeToggle />
+        </div>
       </header>
 
       <div className="matches-page__pick-bar">

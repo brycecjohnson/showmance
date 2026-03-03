@@ -4,7 +4,7 @@ Description: Showmance - Couples movie/show matching PWA backend
 
 Globals:
   Function:
-    Runtime: python3.12
+    Runtime: python3.9
     MemorySize: 128
     Timeout: 10
     Environment:
@@ -15,6 +15,36 @@ Globals:
       - !Ref SharedLayer
 
 Resources:
+  # --- Shared Lambda Role ---
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !GetAtt ShowmanceTable.Arn
+                  - !Sub "${ShowmanceTable.Arn}/index/*"
+
   # --- DynamoDB ---
   ShowmanceTable:
     Type: AWS::DynamoDB::Table
@@ -56,9 +86,9 @@ Resources:
       Description: Shared utilities for Showmance Lambdas
       ContentUri: layers/shared/
       CompatibleRuntimes:
-        - python3.12
+        - python3.9
     Metadata:
-      BuildMethod: python3.12
+      BuildMethod: python3.9
 
   # --- API Gateway ---
   ShowmanceApi:
@@ -85,6 +115,7 @@ Resources:
       FunctionName: showmance-create-room
       Handler: app.handler
       CodeUri: functions/create_room/
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         Api:
           Type: HttpApi
@@ -99,6 +130,7 @@ Resources:
       FunctionName: showmance-join-room
       Handler: app.handler
       CodeUri: functions/join_room/
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         Api:
           Type: HttpApi
@@ -113,6 +145,7 @@ Resources:
       FunctionName: showmance-get-room
       Handler: app.handler
       CodeUri: functions/get_room/
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         Api:
           Type: HttpApi
@@ -127,6 +160,7 @@ Resources:
       FunctionName: showmance-save-preferences
       Handler: app.handler
       CodeUri: functions/save_preferences/
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         Api:
           Type: HttpApi
@@ -142,6 +176,7 @@ Resources:
       Handler: app.handler
       CodeUri: functions/get_cards/
       Timeout: 15
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         Api:
           Type: HttpApi
@@ -156,6 +191,7 @@ Resources:
       FunctionName: showmance-record-swipe
       Handler: app.handler
       CodeUri: functions/record_swipe/
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         Api:
           Type: HttpApi
@@ -170,6 +206,7 @@ Resources:
       FunctionName: showmance-get-matches
       Handler: app.handler
       CodeUri: functions/get_matches/
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         Api:
           Type: HttpApi
@@ -184,6 +221,7 @@ Resources:
       FunctionName: showmance-update-match
       Handler: app.handler
       CodeUri: functions/update_match/
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         Api:
           Type: HttpApi
@@ -198,6 +236,7 @@ Resources:
       FunctionName: showmance-tonights-pick
       Handler: app.handler
       CodeUri: functions/tonights_pick/
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         Api:
           Type: HttpApi

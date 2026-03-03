@@ -18,7 +18,7 @@ type Step = 'services' | 'mode' | 'genres' | 'eras' | 'seed' | 'compat' | 'savin
 
 export function OnboardingPage() {
   const navigate = useNavigate();
-  const { roomCode } = useRoomContext();
+  const { roomCode, isSolo } = useRoomContext();
   const { mode } = useModeContext();
   const [step, setStep] = useState<Step>(
     isOnboardingComplete() ? 'mode' : 'services',
@@ -66,10 +66,15 @@ export function OnboardingPage() {
 
   const handleSeedComplete = (liked: number[], _disliked: number[]) => {
     setSeedLiked(liked);
-    setStep('compat');
+    if (isSolo) {
+      // Solo mode: skip compat reveal, go straight to saving
+      handleSavePreferences(liked);
+    } else {
+      setStep('compat');
+    }
   };
 
-  const handleCompatComplete = async () => {
+  const handleSavePreferences = async (seedLikedOverride?: number[]) => {
     if (!roomCode) return;
     setStep('saving');
     try {
@@ -78,13 +83,17 @@ export function OnboardingPage() {
         genres_disliked: genresDisliked,
         eras,
         streaming_services: services,
-        seed_liked: seedLiked,
+        seed_liked: seedLikedOverride ?? seedLiked,
       });
       setOnboardingComplete(true);
       navigate('/swipe');
     } catch {
-      setStep('compat');
+      setStep('seed');
     }
+  };
+
+  const handleCompatComplete = async () => {
+    await handleSavePreferences();
   };
 
   return (

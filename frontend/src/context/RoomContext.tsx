@@ -14,9 +14,10 @@ interface RoomContextValue {
   roomCode: string | null;
   partnerId: string | null;
   room: Room | null;
+  isSolo: boolean;
   isLoading: boolean;
   error: string | null;
-  createRoom: () => Promise<void>;
+  createRoom: (solo?: boolean) => Promise<void>;
   joinRoom: (code: string) => Promise<void>;
   loadRoom: () => Promise<void>;
   leaveRoom: () => void;
@@ -50,11 +51,11 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const createRoom = useCallback(async () => {
+  const createRoom = useCallback(async (solo?: boolean) => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await roomsApi.createRoom();
+      const data = await roomsApi.createRoom(solo);
       storage.setRoomCode(data.room_code);
       storage.setPartnerId(data.partner_id);
       setRoomCode(data.room_code);
@@ -101,6 +102,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
         roomCode,
         partnerId,
         room,
+        isSolo: room?.is_solo ?? false,
         isLoading,
         error,
         createRoom,

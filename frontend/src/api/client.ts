@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '../utils/constants';
+import { getPartnerId } from '../utils/storage';
 
 class ApiError extends Error {
   status: number;
@@ -15,10 +16,12 @@ async function request<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
+  const partnerId = getPartnerId();
   const response = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(partnerId ? { 'X-Partner-Id': partnerId } : {}),
       ...options.headers,
     },
   });

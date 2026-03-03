@@ -242,26 +242,40 @@ def _eras_to_year_range(eras: list[str]) -> tuple[Optional[int], Optional[int]]:
 
 
 def extract_card_data(item: dict, media_type: str) -> dict:
-    """Extract the fields needed for a swipe card from a TMDB result item."""
+    """Extract the fields needed for a swipe card from a TMDB result item.
+
+    Returns fields matching the frontend Card interface:
+    - poster_path/backdrop_path: raw TMDB paths (frontend prepends base URL)
+    - release_year: integer year
+    - rating: vote average
+    - genre_names: human-readable genre names
+    """
+    from shared.validation import VALID_GENRES
+
     if media_type == "movie":
         title = item.get("title", "")
         release_date = item.get("release_date", "")
-        year = release_date[:4] if release_date else ""
     else:
         title = item.get("name", "")
-        first_air = item.get("first_air_date", "")
-        year = first_air[:4] if first_air else ""
+        release_date = item.get("first_air_date", "")
+
+    year_str = release_date[:4] if release_date else ""
+    release_year = int(year_str) if year_str.isdigit() else 0
+
+    genre_ids = item.get("genre_ids", [])
+    genre_names = [VALID_GENRES[gid] for gid in genre_ids if gid in VALID_GENRES]
 
     return {
         "tmdb_id": item.get("id"),
         "media_type": media_type,
         "title": title,
-        "year": year,
+        "release_year": release_year,
         "overview": item.get("overview", ""),
-        "poster_path": poster_url(item.get("poster_path", "")),
-        "backdrop_path": poster_url(item.get("backdrop_path", ""), size="w780"),
-        "vote_average": float(item.get("vote_average", 0)),
-        "genre_ids": item.get("genre_ids", []),
+        "poster_path": item.get("poster_path"),
+        "backdrop_path": item.get("backdrop_path"),
+        "rating": float(item.get("vote_average", 0)),
+        "genre_ids": genre_ids,
+        "genre_names": genre_names,
         "popularity": float(item.get("popularity", 0)),
     }
 

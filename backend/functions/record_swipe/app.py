@@ -88,24 +88,34 @@ def handler(event, context):
 
         # Step 3: Match detection (only for right swipes)
         matched = False
-        if direction == "right":
-            other_partner_id = (
-                room.get("partner_2_id")
-                if partner_id == room.get("partner_1_id")
-                else room.get("partner_1_id")
-            )
+        is_solo = room.get("is_solo", False)
 
-            if other_partner_id:
-                # Check if the other partner also swiped right on this title
-                other_swipe = get_item(
-                    f"ROOM#{room_code}",
-                    f"SWIPE#{media_type}#{tmdb_id}#{other_partner_id}",
+        if direction == "right":
+            if is_solo:
+                # Solo mode: every right swipe is auto-matched
+                matched = True
+                _create_match(
+                    room_code, tmdb_id, media_type, title, poster_path, year, now,
                 )
-                if other_swipe and other_swipe.get("direction") == "right":
-                    matched = True
-                    _create_match(
-                        room_code, tmdb_id, media_type, title, poster_path, year, now,
+            else:
+                # Couples mode: check if partner also swiped right
+                other_partner_id = (
+                    room.get("partner_2_id")
+                    if partner_id == room.get("partner_1_id")
+                    else room.get("partner_1_id")
+                )
+
+                if other_partner_id:
+                    # Check if the other partner also swiped right on this title
+                    other_swipe = get_item(
+                        f"ROOM#{room_code}",
+                        f"SWIPE#{media_type}#{tmdb_id}#{other_partner_id}",
                     )
+                    if other_swipe and other_swipe.get("direction") == "right":
+                        matched = True
+                        _create_match(
+                            room_code, tmdb_id, media_type, title, poster_path, year, now,
+                        )
 
         result = {
             "swipe": "recorded",

@@ -25,6 +25,8 @@ export function useSwipe() {
           direction,
           media_type: mode,
           title: card.title,
+          poster_path: card.poster_path ?? undefined,
+          year: card.release_year ? String(card.release_year) : undefined,
         });
         setLastResult(result);
         return result;
