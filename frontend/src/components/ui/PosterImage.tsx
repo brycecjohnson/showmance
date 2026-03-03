@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import './PosterImage.css';
 
 interface PosterImageProps {
@@ -12,11 +12,23 @@ interface PosterImageProps {
 export function PosterImage({ src, alt, className = '', lazy = false, draggable }: PosterImageProps) {
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const currentSrc = useRef(src);
 
-  useEffect(() => {
+  // Track src changes and reset state
+  if (src !== currentSrc.current) {
+    currentSrc.current = src;
     setLoaded(false);
     setErrored(false);
-  }, [src]);
+  }
+
+  // Handle images that load from cache (complete before onLoad fires)
+  useEffect(() => {
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth > 0) {
+      setLoaded(true);
+    }
+  });
 
   const handleLoad = useCallback(() => setLoaded(true), []);
   const handleError = useCallback(() => setErrored(true), []);
@@ -36,6 +48,7 @@ export function PosterImage({ src, alt, className = '', lazy = false, draggable 
     <div className={`poster-image ${className}`}>
       {!loaded && <div className="poster-image__shimmer" />}
       <img
+        ref={imgRef}
         src={src}
         alt={alt}
         loading={lazy ? 'lazy' : undefined}

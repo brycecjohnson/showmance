@@ -9,7 +9,7 @@ import './CardStack.css';
 const VISIBLE_CARDS = 3;
 
 interface CardStackProps {
-  onSwipe: (tmdbId: number, direction: SwipeDirection) => void;
+  onSwipe: (tmdbId: number, direction: SwipeDirection, card: Card) => void;
   triggerRef: React.MutableRefObject<((dir: 'left' | 'right') => void) | null>;
   onCardTap?: (card: Card) => void;
   onError?: (message: string) => void;
@@ -50,7 +50,7 @@ export function CardStack({ onSwipe, triggerRef, onCardTap, onError }: CardStack
       const topCard = cards[0];
       if (!topCard) return;
       removeTopCard();
-      onSwipe(topCard.tmdb_id, direction);
+      onSwipe(topCard.tmdb_id, direction, topCard);
     },
     [cards, removeTopCard, onSwipe],
   );
