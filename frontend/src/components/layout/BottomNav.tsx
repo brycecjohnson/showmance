@@ -34,7 +34,7 @@ export function BottomNav({ newMatchCount = 0 }: BottomNavProps) {
           </svg>
           <Badge count={newMatchCount} />
         </div>
-        <span className="bottom-nav__label">Matches</span>
+        <span className="bottom-nav__label">Places</span>
       </NavLink>
     </nav>
   );

@@ -35,7 +35,7 @@ export function JoinRoom({ onJoined, onBack }: JoinRoomProps) {
         id="room-code"
         className="join-room__input"
         type="text"
-        placeholder="SHOW-XXXX"
+        placeholder="EATS-XXXX"
         value={code}
         onChange={(e) => formatCode(e.target.value)}
         maxLength={9}

@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { ModeToggle } from '../components/layout/ModeToggle';
 import { RoomCodeChip } from '../components/ui/RoomCodeChip';
 import { MatchList } from '../components/matches/MatchList';
 import { TonightsPick } from '../components/matches/TonightsPick';
@@ -13,7 +12,7 @@ export function MatchesPage() {
   const [matchCount, setMatchCount] = useState(0);
   const [showPick, setShowPick] = useState(false);
   const { isSolo } = useRoomContext();
-  const { pickTonight, markWatched } = useMatches();
+  const { pickTonight, markVisited } = useMatches();
 
   const handleMatchCount = useCallback((count: number) => {
     setMatchCount(count);
@@ -23,12 +22,11 @@ export function MatchesPage() {
     <div className="matches-page">
       <header className="matches-page__header">
         <div className="matches-page__title-row">
-          <h1 className="matches-page__title">{isSolo ? 'Your Picks' : 'Matches'}</h1>
+          <h1 className="matches-page__title">{isSolo ? 'Your Picks' : 'Places to Try'}</h1>
           <Badge count={matchCount} />
         </div>
         <div className="matches-page__controls">
           <RoomCodeChip />
-          <ModeToggle />
         </div>
       </header>
 
@@ -52,7 +50,7 @@ export function MatchesPage() {
         isOpen={showPick}
         onClose={() => setShowPick(false)}
         onPick={pickTonight}
-        onWatched={markWatched}
+        onVisited={markVisited}
       />
     </div>
   );

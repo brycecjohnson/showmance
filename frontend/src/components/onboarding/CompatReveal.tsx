@@ -1,23 +1,26 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '../ui/Button';
+import { CUISINES } from '../../utils/constants';
 import './CompatReveal.css';
 
 interface CompatRevealProps {
-  genresLiked: string[];
-  seedLiked: number[];
+  cuisinesLiked: string[];
   onComplete: () => void;
 }
 
-function computeScore(genresLiked: string[], seedLiked: number[]): number {
-  const genreWeight = Math.min(genresLiked.length * 5, 50);
-  const seedWeight = Math.min(seedLiked.length * 4, 40);
-  const base = 10;
-  return Math.min(genreWeight + seedWeight + base, 99);
+function computeScore(cuisinesLiked: string[]): number {
+  const cuisineWeight = Math.min(cuisinesLiked.length * 7, 70);
+  const base = 20;
+  return Math.min(cuisineWeight + base, 99);
 }
 
-export function CompatReveal({ genresLiked, seedLiked, onComplete }: CompatRevealProps) {
-  const score = computeScore(genresLiked, seedLiked);
+function cuisineName(id: string): string {
+  return CUISINES.find((c) => c.id === id)?.name ?? id;
+}
+
+export function CompatReveal({ cuisinesLiked, onComplete }: CompatRevealProps) {
+  const score = computeScore(cuisinesLiked);
   const [displayScore, setDisplayScore] = useState(0);
   const [revealed, setRevealed] = useState(false);
 
@@ -95,7 +98,7 @@ export function CompatReveal({ genresLiked, seedLiked, onComplete }: CompatRevea
           transition={{ delay: 1.0 }}
         >
           {score >= 70
-            ? "You're a great match!"
+            ? 'You two are hungry for the same things!'
             : score >= 40
               ? 'Solid foundation!'
               : "Let's explore together!"}
@@ -107,21 +110,21 @@ export function CompatReveal({ genresLiked, seedLiked, onComplete }: CompatRevea
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 1.2 }}
         >
-          You're a {score}% match — let's find your next watch!
+          You're a {score}% food match — let's find your table!
         </motion.p>
 
-        {genresLiked.length > 0 && (
+        {cuisinesLiked.length > 0 && (
           <motion.div
             className="compat-reveal__genres"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 1.4 }}
           >
-            <p className="compat-reveal__genres-label">Your top genres</p>
+            <p className="compat-reveal__genres-label">Your top cravings</p>
             <div className="compat-reveal__genre-tags">
-              {genresLiked.slice(0, 5).map((genre) => (
-                <span key={genre} className="compat-reveal__genre-tag">
-                  {genre}
+              {cuisinesLiked.slice(0, 5).map((cuisine) => (
+                <span key={cuisine} className="compat-reveal__genre-tag">
+                  {cuisineName(cuisine)}
                 </span>
               ))}
             </div>

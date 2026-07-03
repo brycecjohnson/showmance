@@ -1,42 +1,30 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getCards } from '../api/cards';
 import { useRoomContext } from '../context/RoomContext';
-import { useModeContext } from '../context/ModeContext';
-import type { Card } from '../types/card';
+import type { RestaurantCard } from '../types/card';
 import { CARDS_PREFETCH_THRESHOLD } from '../utils/constants';
 
 export function useCards() {
   const { roomCode } = useRoomContext();
-  const { mode } = useModeContext();
-  const [cards, setCards] = useState<Card[]>([]);
+  const [cards, setCards] = useState<RestaurantCard[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const prevModeRef = useRef(mode);
-
-  // Reset deck when mode changes
-  useEffect(() => {
-    if (prevModeRef.current !== mode) {
-      prevModeRef.current = mode;
-      setCards([]);
-      setHasMore(true);
-    }
-  }, [mode]);
 
   const fetchCards = useCallback(async () => {
     if (!roomCode || isLoading) return;
     setIsLoading(true);
     try {
-      const data = await getCards(roomCode, mode);
+      const data = await getCards(roomCode);
       setCards((prev) => {
-        const existingIds = new Set(prev.map((c) => c.tmdb_id));
-        const newCards = data.cards.filter((c) => !existingIds.has(c.tmdb_id));
+        const existingIds = new Set(prev.map((c) => c.place_id));
+        const newCards = data.cards.filter((c) => !existingIds.has(c.place_id));
         return [...prev, ...newCards];
       });
       setHasMore(data.has_more);
     } finally {
       setIsLoading(false);
     }
-  }, [roomCode, mode, isLoading]);
+  }, [roomCode, isLoading]);
 
   // Prefetch when card count drops below threshold
   useEffect(() => {

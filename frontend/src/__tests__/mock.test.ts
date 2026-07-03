@@ -32,58 +32,65 @@ async function resolved<T>(promise: Promise<T>): Promise<T> {
   return promise;
 }
 
+// ─── createRoom ──────────────────────────────────────────────
+
+describe('mock.createRoom', () => {
+  it('returns an EATS-prefixed room code and a partner id', async () => {
+    const mock = await loadMock();
+    const { room_code, partner_id } = await resolved(mock.createRoom());
+
+    expect(room_code).toMatch(/^EATS-[A-Z2-9]{4}$/);
+    expect(partner_id).toBe(FIXED_UUID);
+  });
+});
+
 // ─── getCards ────────────────────────────────────────────────
 
 describe('mock.getCards', () => {
-  it('returns only movie cards when mode is "movie"', async () => {
+  it('returns restaurant cards with required fields', async () => {
     const mock = await loadMock();
-    const { cards } = await resolved(mock.getCards('SHOW-TEST', 'movie'));
+    const { cards } = await resolved(mock.getCards('EATS-TEST'));
 
     expect(cards.length).toBeGreaterThan(0);
-    expect(cards.every((c) => c.media_type === 'movie')).toBe(true);
-  });
-
-  it('returns only tv cards when mode is "tv"', async () => {
-    const mock = await loadMock();
-    const { cards } = await resolved(mock.getCards('SHOW-TEST', 'tv'));
-
-    expect(cards.length).toBeGreaterThan(0);
-    expect(cards.every((c) => c.media_type === 'tv')).toBe(true);
+    for (const card of cards) {
+      expect(card.place_id).toBeTruthy();
+      expect(card.name).toBeTruthy();
+      expect(card.cuisines.length).toBeGreaterThan(0);
+      expect(card.rating).toBeGreaterThan(0);
+    }
   });
 
   it('excludes previously swiped cards', async () => {
     const mock = await loadMock();
 
-    const { cards: before } = await resolved(mock.getCards('SHOW-TEST', 'movie'));
+    const { cards: before } = await resolved(mock.getCards('EATS-TEST'));
     const firstCard = before[0];
 
     await resolved(
       mock.recordSwipe({
-        tmdb_id: firstCard.tmdb_id,
+        place_id: firstCard.place_id,
         direction: 'left',
-        media_type: firstCard.media_type,
       }),
     );
 
-    const { cards: after } = await resolved(mock.getCards('SHOW-TEST', 'movie'));
-    expect(after.find((c) => c.tmdb_id === firstCard.tmdb_id)).toBeUndefined();
+    const { cards: after } = await resolved(mock.getCards('EATS-TEST'));
+    expect(after.find((c) => c.place_id === firstCard.place_id)).toBeUndefined();
   });
 
-  it('returns has_more=false when all cards for the mode are swiped', async () => {
+  it('returns has_more=false when all cards are swiped', async () => {
     const mock = await loadMock();
 
-    const { cards: allMovies } = await resolved(mock.getCards('SHOW-TEST', 'movie'));
-    for (const card of allMovies) {
+    const { cards: all } = await resolved(mock.getCards('EATS-TEST'));
+    for (const card of all) {
       await resolved(
         mock.recordSwipe({
-          tmdb_id: card.tmdb_id,
+          place_id: card.place_id,
           direction: 'left',
-          media_type: card.media_type,
         }),
       );
     }
 
-    const { cards, has_more } = await resolved(mock.getCards('SHOW-TEST', 'movie'));
+    const { cards, has_more } = await resolved(mock.getCards('EATS-TEST'));
     expect(cards).toHaveLength(0);
     expect(has_more).toBe(false);
   });
@@ -95,31 +102,29 @@ describe('mock.recordSwipe', () => {
   it('tracks swiped IDs so they do not appear in subsequent getCards calls', async () => {
     const mock = await loadMock();
 
-    const { cards: before } = await resolved(mock.getCards('SHOW-TEST', 'tv'));
+    const { cards: before } = await resolved(mock.getCards('EATS-TEST'));
     const target = before[0];
 
     await resolved(
       mock.recordSwipe({
-        tmdb_id: target.tmdb_id,
+        place_id: target.place_id,
         direction: 'right',
-        media_type: target.media_type,
       }),
     );
 
-    const { cards: after } = await resolved(mock.getCards('SHOW-TEST', 'tv'));
-    expect(after.find((c) => c.tmdb_id === target.tmdb_id)).toBeUndefined();
+    const { cards: after } = await resolved(mock.getCards('EATS-TEST'));
+    expect(after.find((c) => c.place_id === target.place_id)).toBeUndefined();
   });
 
   it('never returns a match on left swipes', async () => {
     const mock = await loadMock();
 
-    const { cards } = await resolved(mock.getCards('SHOW-TEST', 'movie'));
+    const { cards } = await resolved(mock.getCards('EATS-TEST'));
     for (const card of cards) {
       const result = await resolved(
         mock.recordSwipe({
-          tmdb_id: card.tmdb_id,
+          place_id: card.place_id,
           direction: 'left',
-          media_type: card.media_type,
         }),
       );
       expect(result.matched).toBe(false);
@@ -133,56 +138,69 @@ describe('mock.recordSwipe', () => {
     // Seed Math.random to force a match (< 0.3 threshold)
     vi.spyOn(Math, 'random').mockReturnValue(0.1);
 
-    const { cards } = await resolved(mock.getCards('SHOW-TEST', 'movie'));
+    const { cards } = await resolved(mock.getCards('EATS-TEST'));
     const result = await resolved(
       mock.recordSwipe({
-        tmdb_id: cards[0].tmdb_id,
+        place_id: cards[0].place_id,
         direction: 'right',
-        media_type: cards[0].media_type,
       }),
     );
 
     expect(result.matched).toBe(true);
     expect(result.match).toBeDefined();
-    expect(result.match!.tmdb_id).toBe(cards[0].tmdb_id);
+    expect(result.match!.place_id).toBe(cards[0].place_id);
   });
 });
 
 // ─── getMatches ──────────────────────────────────────────────
 
 describe('mock.getMatches', () => {
-  it('returns matches filtered by mode', async () => {
+  it('seeds matches so the list is not empty', async () => {
     const mock = await loadMock();
 
-    const { matches: movieMatches } = await resolved(mock.getMatches('SHOW-TEST', 'movie'));
-    expect(movieMatches.length).toBeGreaterThan(0);
-    expect(movieMatches.every((m) => m.media_type === 'movie')).toBe(true);
-
-    const { matches: tvMatches } = await resolved(mock.getMatches('SHOW-TEST', 'tv'));
-    expect(tvMatches.length).toBeGreaterThan(0);
-    expect(tvMatches.every((m) => m.media_type === 'tv')).toBe(true);
+    const { matches } = await resolved(mock.getMatches('EATS-TEST'));
+    expect(matches.length).toBeGreaterThan(0);
+    for (const match of matches) {
+      expect(match.place_id).toBeTruthy();
+      expect(match.visited).toBe(false);
+    }
   });
 });
 
 // ─── updateMatch ─────────────────────────────────────────────
 
 describe('mock.updateMatch', () => {
-  it('toggles watched state on a match', async () => {
+  it('toggles visited state on a match', async () => {
     const mock = await loadMock();
 
-    const { matches } = await resolved(mock.getMatches('SHOW-TEST', 'movie'));
+    const { matches } = await resolved(mock.getMatches('EATS-TEST'));
     const target = matches[0];
 
-    expect(target.watched).toBe(false);
+    expect(target.visited).toBe(false);
 
-    await resolved(mock.updateMatch('SHOW-TEST', target.tmdb_id, { watched: true }));
-    const { matches: after } = await resolved(mock.getMatches('SHOW-TEST', 'movie'));
-    const updated = after.find((m) => m.tmdb_id === target.tmdb_id)!;
-    expect(updated.watched).toBe(true);
+    await resolved(mock.updateMatch('EATS-TEST', target.place_id, { visited: true }));
+    const { matches: after } = await resolved(mock.getMatches('EATS-TEST'));
+    const updated = after.find((m) => m.place_id === target.place_id)!;
+    expect(updated.visited).toBe(true);
 
-    await resolved(mock.updateMatch('SHOW-TEST', target.tmdb_id, { watched: false }));
-    const { matches: afterOff } = await resolved(mock.getMatches('SHOW-TEST', 'movie'));
-    const toggled = afterOff.find((m) => m.tmdb_id === target.tmdb_id)!;
-    expect(toggled.watched).toBe(false);
+    await resolved(mock.updateMatch('EATS-TEST', target.place_id, { visited: false }));
+    const { matches: afterOff } = await resolved(mock.getMatches('EATS-TEST'));
+    const toggled = afterOff.find((m) => m.place_id === target.place_id)!;
+    expect(toggled.visited).toBe(false);
+  });
+});
+
+// ─── getTonightsPick ─────────────────────────────────────────
+
+describe('mock.getTonightsPick', () => {
+  it('returns an unvisited match', async () => {
+    const mock = await loadMock();
+
+    const { matches } = await resolved(mock.getMatches('EATS-TEST'));
+    const { match: pick } = await resolved(mock.getTonightsPick('EATS-TEST'));
+
+    expect(pick).toBeDefined();
+    expect(matches.some((m) => m.place_id === pick.place_id)).toBe(true);
+    expect(pick.visited).toBe(false);
   });
 });

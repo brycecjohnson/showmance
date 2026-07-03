@@ -1,17 +1,14 @@
 import { post } from './client';
 import { mock, MOCK_ENABLED } from './mock';
 import type { SwipeDirection, SwipeResult } from '../types/swipe';
-import type { MediaMode } from '../types/room';
 
 interface RecordSwipePayload {
   room_code: string;
   partner_id: string;
-  tmdb_id: number;
+  place_id: string;
   direction: SwipeDirection;
-  media_type: MediaMode;
-  title: string;
-  poster_path?: string;
-  year?: string;
+  name: string;
+  photo_url?: string;
 }
 
 export function recordSwipe(

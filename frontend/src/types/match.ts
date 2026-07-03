@@ -1,15 +1,14 @@
-import type { MediaMode } from './room';
-
 export interface Match {
-  tmdb_id: number;
-  title: string;
-  poster_path: string | null;
-  media_type: MediaMode;
+  place_id: string;
+  name: string;
+  photo_url: string | null;
   matched_at: string;
-  watched: boolean;
-  watched_at: string | null;
+  visited: boolean;
+  visited_at: string | null;
   rating: number;
-  release_year: number;
-  genre_names: string[];
-  streaming_services: string[];
+  price_level: number | null;
+  cuisines: string[];
+  address: string;
+  distance_mi: number | null;
+  maps_url?: string;
 }

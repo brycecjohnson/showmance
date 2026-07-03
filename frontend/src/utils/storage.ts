@@ -1,5 +1,4 @@
 import { STORAGE_KEYS } from './constants';
-import type { MediaMode } from '../types/room';
 
 export function getRoomCode(): string | null {
   return localStorage.getItem(STORAGE_KEYS.ROOM_CODE);
@@ -15,14 +14,6 @@ export function getPartnerId(): string | null {
 
 export function setPartnerId(id: string): void {
   localStorage.setItem(STORAGE_KEYS.PARTNER_ID, id);
-}
-
-export function getMode(): MediaMode {
-  return (localStorage.getItem(STORAGE_KEYS.MODE) as MediaMode) || 'movie';
-}
-
-export function setMode(mode: MediaMode): void {
-  localStorage.setItem(STORAGE_KEYS.MODE, mode);
 }
 
 export function isOnboardingComplete(): boolean {

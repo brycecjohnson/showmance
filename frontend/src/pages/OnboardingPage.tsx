@@ -1,12 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useModeContext } from '../context/ModeContext';
 import { useRoomContext } from '../context/RoomContext';
-import { ModeToggle } from '../components/layout/ModeToggle';
 import { RoomSetup } from '../components/room/RoomSetup';
-import { GenreSwipe } from '../components/onboarding/GenreSwipe';
-import { EraSelect } from '../components/onboarding/EraSelect';
-import { SeedSwipe } from '../components/onboarding/SeedSwipe';
+import { CuisineSwipe } from '../components/onboarding/CuisineSwipe';
 import { CompatReveal } from '../components/onboarding/CompatReveal';
 import { Button } from '../components/ui/Button';
 import { Spinner } from '../components/ui/Spinner';
@@ -14,81 +10,62 @@ import { savePreferences } from '../api/rooms';
 import { isOnboardingComplete, setOnboardingComplete } from '../utils/storage';
 import './OnboardingPage.css';
 
-type Step = 'services' | 'mode' | 'genres' | 'eras' | 'seed' | 'compat' | 'saving';
+type Step = 'prices' | 'cuisines' | 'compat' | 'saving';
 
 export function OnboardingPage() {
   const navigate = useNavigate();
   const { roomCode, isSolo } = useRoomContext();
-  const { mode } = useModeContext();
-  const [step, setStep] = useState<Step>(
-    isOnboardingComplete() ? 'mode' : 'services',
-  );
-  const [services, setServices] = useState<string[]>([]);
-  const [genresLiked, setGenresLiked] = useState<string[]>([]);
-  const [genresDisliked, setGenresDisliked] = useState<string[]>([]);
-  const [eras, setEras] = useState<string[]>([]);
-  const [seedLiked, setSeedLiked] = useState<number[]>([]);
+  const [step, setStep] = useState<Step>('prices');
+  const [priceLevels, setPriceLevels] = useState<number[]>([]);
+  const [cuisinesLiked, setCuisinesLiked] = useState<string[]>([]);
+  const [cuisinesDisliked, setCuisinesDisliked] = useState<string[]>([]);
 
-  // If onboarding already done, just show mode pick then go to swipe
+  // If onboarding already done, go straight to the deck
   if (isOnboardingComplete()) {
     return (
       <div className="onboarding">
         <h2 className="onboarding__title">Ready to Swipe</h2>
-        <p className="onboarding__subtitle">Pick your mode</p>
-        <ModeToggle />
+        <p className="onboarding__subtitle">Your tastes are saved — let's find dinner</p>
         <div className="onboarding__spacer" />
         <Button onClick={() => navigate('/swipe')} fullWidth size="lg">
-          Start Swiping {mode === 'movie' ? 'Movies' : 'TV Shows'}
+          Find Restaurants
         </Button>
       </div>
     );
   }
 
-  const handleServicesComplete = (selected: string[]) => {
-    setServices(selected);
-    setStep('mode');
+  const handlePricesComplete = (selected: number[]) => {
+    setPriceLevels(selected);
+    setStep('cuisines');
   };
 
-  const handleModeComplete = () => {
-    setStep('genres');
-  };
-
-  const handleGenresComplete = (liked: string[], disliked: string[]) => {
-    setGenresLiked(liked);
-    setGenresDisliked(disliked);
-    setStep('eras');
-  };
-
-  const handleErasComplete = (selectedEras: string[]) => {
-    setEras(selectedEras);
-    setStep('seed');
-  };
-
-  const handleSeedComplete = (liked: number[], _disliked: number[]) => {
-    setSeedLiked(liked);
+  const handleCuisinesComplete = (liked: string[], disliked: string[]) => {
+    setCuisinesLiked(liked);
+    setCuisinesDisliked(disliked);
     if (isSolo) {
       // Solo mode: skip compat reveal, go straight to saving
-      handleSavePreferences(liked);
+      handleSavePreferences(liked, disliked);
     } else {
       setStep('compat');
     }
   };
 
-  const handleSavePreferences = async (seedLikedOverride?: number[]) => {
+  const handleSavePreferences = async (
+    likedOverride?: string[],
+    dislikedOverride?: string[],
+  ) => {
     if (!roomCode) return;
     setStep('saving');
     try {
       await savePreferences(roomCode, {
-        genres_liked: genresLiked,
-        genres_disliked: genresDisliked,
-        eras,
-        streaming_services: services,
-        seed_liked: seedLikedOverride ?? seedLiked,
+        cuisines_liked: likedOverride ?? cuisinesLiked,
+        cuisines_disliked: dislikedOverride ?? cuisinesDisliked,
+        price_levels: priceLevels,
       });
       setOnboardingComplete(true);
       navigate('/swipe');
     } catch {
-      setStep('seed');
+      setStep('cuisines');
     }
   };
 
@@ -98,37 +75,17 @@ export function OnboardingPage() {
 
   return (
     <div className="onboarding">
-      {step === 'services' && (
-        <RoomSetup onComplete={handleServicesComplete} />
+      {step === 'prices' && (
+        <RoomSetup onComplete={handlePricesComplete} />
       )}
 
-      {step === 'mode' && (
-        <div className="onboarding__mode">
-          <h2 className="onboarding__title">What are you looking for?</h2>
-          <ModeToggle />
-          <div className="onboarding__spacer" />
-          <Button onClick={handleModeComplete} fullWidth size="lg">
-            Continue with {mode === 'movie' ? 'Movies' : 'TV Shows'}
-          </Button>
-        </div>
-      )}
-
-      {step === 'genres' && (
-        <GenreSwipe onComplete={handleGenresComplete} />
-      )}
-
-      {step === 'eras' && (
-        <EraSelect onComplete={handleErasComplete} />
-      )}
-
-      {step === 'seed' && (
-        <SeedSwipe onComplete={handleSeedComplete} />
+      {step === 'cuisines' && (
+        <CuisineSwipe onComplete={handleCuisinesComplete} />
       )}
 
       {step === 'compat' && (
         <CompatReveal
-          genresLiked={genresLiked}
-          seedLiked={seedLiked}
+          cuisinesLiked={cuisinesLiked}
           onComplete={handleCompatComplete}
         />
       )}
@@ -136,7 +93,7 @@ export function OnboardingPage() {
       {step === 'saving' && (
         <div className="onboarding__saving">
           <Spinner size="lg" />
-          <p>Saving your preferences...</p>
+          <p>Saving your tastes...</p>
         </div>
       )}
     </div>

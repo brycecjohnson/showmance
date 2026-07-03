@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { RoomProvider } from './context/RoomContext';
-import { ModeProvider } from './context/ModeContext';
 import { AppShell } from './components/layout/AppShell';
 import { BottomNav } from './components/layout/BottomNav';
 import { LandingPage } from './pages/LandingPage';
@@ -78,14 +77,12 @@ function App() {
   return (
     <BrowserRouter>
       <RoomProvider>
-        <ModeProvider>
-          <AppShell>
-            <OfflineBanner />
-            <AnimatedRoutes />
-            <InstallPrompt />
-            {updateAvailable && <UpdateToast onRefresh={applyUpdate} />}
-          </AppShell>
-        </ModeProvider>
+        <AppShell>
+          <OfflineBanner />
+          <AnimatedRoutes />
+          <InstallPrompt />
+          {updateAvailable && <UpdateToast onRefresh={applyUpdate} />}
+        </AppShell>
       </RoomProvider>
     </BrowserRouter>
   );

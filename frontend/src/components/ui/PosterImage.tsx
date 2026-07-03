@@ -13,11 +13,11 @@ export function PosterImage({ src, alt, className = '', lazy = false, draggable 
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
-  const currentSrc = useRef(src);
+  const [prevSrc, setPrevSrc] = useState(src);
 
   // Track src changes and reset state
-  if (src !== currentSrc.current) {
-    currentSrc.current = src;
+  if (src !== prevSrc) {
+    setPrevSrc(src);
     setLoaded(false);
     setErrored(false);
   }
@@ -37,8 +37,8 @@ export function PosterImage({ src, alt, className = '', lazy = false, draggable 
     return (
       <div className={`poster-image poster-image--fallback ${className}`}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="32" height="32">
-          <rect x="2" y="2" width="20" height="20" rx="2" />
-          <path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5" />
+          <path d="M7 2v8a2 2 0 002 2v10M7 2v4M11 2v4M4 2v4a3 3 0 003 3" />
+          <path d="M17 2c-1.7 0-3 2-3 5v4h3v11M17 2v20" />
         </svg>
       </div>
     );

@@ -1,38 +1,30 @@
-import type { MediaMode } from './room';
-
-export interface CastMember {
+export interface RestaurantCard {
+  place_id: string;
   name: string;
-  character: string;
-  profile_path: string | null;
-}
-
-export interface Card {
-  tmdb_id: number;
-  media_type: MediaMode;
-  title: string;
-  poster_path: string | null;
-  backdrop_path: string | null;
-  overview: string;
-  release_year: number;
+  photo_url: string | null;
+  cuisines: string[];
   rating: number;
-  genre_ids: number[];
-  genre_names: string[];
-  runtime?: number;
-  seasons_count?: number;
-  episodes_count?: number;
-  streaming_services?: string[];
-  cast?: CastMember[];
-  director?: string;
+  rating_count: number;
+  price_level: number | null;
+  address: string;
+  distance_mi: number | null;
+  open_now?: boolean;
+  description?: string;
+  phone?: string;
+  website?: string;
+  hours?: string[];
+  maps_url?: string;
 }
 
-export interface GenreCard {
+export interface CuisineCard {
+  id: string;
   name: string;
+  emoji: string;
   color: string;
-  icon: string;
 }
 
 export interface CardDeck {
-  cards: Card[];
+  cards: RestaurantCard[];
   currentIndex: number;
   isLoading: boolean;
   hasMore: boolean;
