@@ -7,6 +7,7 @@ import { LandingPage } from './pages/LandingPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { SwipePage } from './pages/SwipePage';
 import { MatchesPage } from './pages/MatchesPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { ProtectedRoute } from './components/room/ProtectedRoute';
 import { InstallPrompt } from './components/ui/InstallPrompt';
 import { UpdateToast } from './components/ui/UpdateToast';
@@ -60,6 +61,15 @@ function AnimatedRoutes() {
             element={
               <ProtectedRoute>
                 <MatchesPage />
+                <BottomNav />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
                 <BottomNav />
               </ProtectedRoute>
             }

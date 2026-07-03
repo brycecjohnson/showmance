@@ -4,11 +4,13 @@ import { Button } from '../ui/Button';
 import './RoomSetup.css';
 
 interface RoomSetupProps {
+  initial?: number[];
+  submitLabel?: string;
   onComplete: (priceLevels: number[]) => void;
 }
 
-export function RoomSetup({ onComplete }: RoomSetupProps) {
-  const [selected, setSelected] = useState<number[]>([]);
+export function RoomSetup({ initial = [], submitLabel = 'Continue', onComplete }: RoomSetupProps) {
+  const [selected, setSelected] = useState<number[]>(initial);
 
   const toggle = (level: number) => {
     setSelected((prev) =>
@@ -41,7 +43,7 @@ export function RoomSetup({ onComplete }: RoomSetupProps) {
         size="lg"
         disabled={selected.length === 0}
       >
-        Continue
+        {submitLabel}
       </Button>
       <Button
         variant="ghost"

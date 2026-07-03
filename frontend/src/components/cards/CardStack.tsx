@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SwipeCard } from './SwipeCard';
 import { useCards } from '../../hooks/useCards';
 import type { RestaurantCard } from '../../types/card';
@@ -15,6 +16,7 @@ interface CardStackProps {
 }
 
 export function CardStack({ onSwipe, triggerRef, onCardTap, onError }: CardStackProps) {
+  const navigate = useNavigate();
   const { cards, isLoading, hasMore, fetchCards, removeTopCard } = useCards();
   const hasFetched = useRef(false);
   const [fetchError, setFetchError] = useState(false);
@@ -101,8 +103,15 @@ export function CardStack({ onSwipe, triggerRef, onCardTap, onError }: CardStack
       <div className="card-stack card-stack--empty">
         <p className="card-stack__empty-title">You've seen every spot nearby!</p>
         <p className="card-stack__empty-subtitle">
-          Try widening your search radius, or check back later for new places.
+          Widen your search radius to discover more places.
         </p>
+        <button
+          className="card-stack__retry-btn"
+          onClick={() => navigate('/settings')}
+          type="button"
+        >
+          Widen radius
+        </button>
       </div>
     );
   }

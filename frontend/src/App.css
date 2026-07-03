@@ -1,1 +1,21 @@
 /* App-level styles — kept minimal, most styling lives in component CSS */
+
+/* Header gear button (Swipe/Matches/Settings nav) */
+.settings-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.settings-icon-btn:hover {
+  color: var(--color-text);
+}

@@ -190,6 +190,50 @@ describe('mock.updateMatch', () => {
   });
 });
 
+// ─── setRoomLocation ─────────────────────────────────────────
+
+describe('mock.setRoomLocation', () => {
+  it('stores a GPS location and radius on the room', async () => {
+    const mock = await loadMock();
+
+    const before = await resolved(mock.getRoom('EATS-TEST'));
+    expect(before.location).toBeNull();
+
+    await resolved(
+      mock.setRoomLocation('EATS-TEST', { lat: 30.3, lng: -97.75, radius_m: 4828 }),
+    );
+
+    const after = await resolved(mock.getRoom('EATS-TEST'));
+    expect(after.location).toEqual({ lat: 30.3, lng: -97.75, label: 'Current location' });
+    expect(after.radius_m).toBe(4828);
+  });
+
+  it('labels an address location with the address text', async () => {
+    const mock = await loadMock();
+
+    const { location } = await resolved(
+      mock.setRoomLocation('EATS-TEST', { address: 'South Congress, Austin', radius_m: 8047 }),
+    );
+    expect(location.label).toBe('South Congress, Austin');
+  });
+
+  it('changes card distances when the room location moves', async () => {
+    const mock = await loadMock();
+
+    const { cards: before } = await resolved(mock.getCards('EATS-TEST'));
+    const target = before.find((c) => c.place_id === 'mock-terra-rossa')!;
+
+    // Move the room ~5.7mi north (Seoul Garden's coords)
+    await resolved(
+      mock.setRoomLocation('EATS-TEST', { lat: 30.3448, lng: -97.7195, radius_m: 8047 }),
+    );
+
+    const { cards: after } = await resolved(mock.getCards('EATS-TEST'));
+    const moved = after.find((c) => c.place_id === 'mock-terra-rossa')!;
+    expect(moved.distance_mi!).toBeGreaterThan(target.distance_mi!);
+  });
+});
+
 // ─── getTonightsPick ─────────────────────────────────────────
 
 describe('mock.getTonightsPick', () => {

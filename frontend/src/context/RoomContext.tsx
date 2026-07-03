@@ -20,6 +20,7 @@ interface RoomContextValue {
   createRoom: (solo?: boolean) => Promise<void>;
   joinRoom: (code: string) => Promise<void>;
   loadRoom: () => Promise<void>;
+  updateLocation: (params: roomsApi.SetLocationParams) => Promise<void>;
   leaveRoom: () => void;
 }
 
@@ -83,6 +84,17 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const updateLocation = useCallback(async (params: roomsApi.SetLocationParams) => {
+    const code = storage.getRoomCode();
+    if (!code) throw new Error('Not in a room');
+    const data = await roomsApi.setRoomLocation(code, params);
+    setRoom((prev) =>
+      prev
+        ? { ...prev, location: data.location, radius_m: data.radius_m }
+        : prev,
+    );
+  }, []);
+
   const leaveRoom = useCallback(() => {
     storage.clearSession();
     setRoomCode(null);
@@ -108,6 +120,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
         createRoom,
         joinRoom,
         loadRoom,
+        updateLocation,
         leaveRoom,
       }}
     >

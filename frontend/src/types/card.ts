@@ -7,6 +7,8 @@ export interface RestaurantCard {
   rating_count: number;
   price_level: number | null;
   address: string;
+  lat?: number;
+  lng?: number;
   distance_mi: number | null;
   open_now?: boolean;
   description?: string;

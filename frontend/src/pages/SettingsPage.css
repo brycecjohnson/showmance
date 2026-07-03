@@ -1,0 +1,71 @@
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  padding: 1rem 1rem calc(72px + env(safe-area-inset-bottom));
+  max-width: 500px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.settings-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.settings-page__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.settings-page__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.settings-section {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg, 16px);
+  padding: 1rem;
+}
+
+.settings-section--danger .settings-section__title {
+  color: var(--color-error);
+}
+
+.settings-section__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.settings-section__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 0.2rem;
+}
+
+.settings-section__value {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.settings-section__body {
+  margin-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 0.5rem;
+}
+
+/* Nested setup components sit flush inside the section card */
+.settings-section__body .location-setup,
+.settings-section__body .room-setup {
+  padding: 0.5rem 0;
+}
