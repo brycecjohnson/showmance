@@ -3,25 +3,27 @@
 import json
 import re
 import uuid
-from typing import Any, Optional
+from typing import Optional
 
 
-ROOM_CODE_PATTERN = re.compile(r"^SHOW-[A-Z0-9]{4}$")
+ROOM_CODE_PATTERN = re.compile(r"^EATS-[A-Z0-9]{4}$")
 
-VALID_MEDIA_TYPES = {"movie", "tv"}
+# Google place_id: opaque token, typically ~27 chars starting with ChIJ but
+# not guaranteed — validate charset and length only.
+PLACE_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{4,256}$")
 
-VALID_ERAS = {"classics", "2000s", "2010s", "new_releases", "all"}
-
-VALID_GENRES = {
-    28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy",
-    80: "Crime", 99: "Documentary", 18: "Drama", 10751: "Family",
-    14: "Fantasy", 36: "History", 27: "Horror", 10402: "Music",
-    9648: "Mystery", 10749: "Romance", 878: "Science Fiction",
-    10770: "TV Movie", 53: "Thriller", 10752: "War", 37: "Western",
-    10759: "Action & Adventure", 10762: "Kids", 10763: "News",
-    10764: "Reality", 10765: "Sci-Fi & Fantasy", 10766: "Soap",
-    10767: "Talk", 10768: "War & Politics",
+# Must match frontend CUISINES ids (frontend/src/utils/constants.ts)
+VALID_CUISINES = {
+    "italian", "mexican", "chinese", "sushi", "thai", "indian", "pizza",
+    "burgers", "bbq", "mediterranean", "korean", "vietnamese", "seafood",
+    "breakfast", "steakhouse", "ramen", "vegetarian", "cafe", "wings",
+    "dessert",
 }
+
+VALID_PRICE_LEVELS = {1, 2, 3, 4}
+
+MIN_RADIUS_M = 500
+MAX_RADIUS_M = 50000
 
 
 def parse_body(event: dict) -> Optional[dict]:
@@ -50,14 +52,14 @@ def get_query_param(event: dict, name: str, default: str = None) -> Optional[str
 
 
 def get_partner_id(event: dict) -> Optional[str]:
-    """Extract partner ID from X-Partner-Id header."""
+    """Extract member ID from X-Partner-Id header."""
     headers = event.get("headers") or {}
     # API Gateway lowercases headers
     return headers.get("x-partner-id") or headers.get("X-Partner-Id")
 
 
 def is_valid_room_code(code: str) -> bool:
-    """Check if a room code matches the SHOW-XXXX pattern."""
+    """Check if a room code matches the EATS-XXXX pattern."""
     return bool(code and ROOM_CODE_PATTERN.match(code))
 
 
@@ -70,6 +72,27 @@ def is_valid_uuid(value: str) -> bool:
         return False
 
 
-def is_valid_media_type(value: str) -> bool:
-    """Check if a media type is valid."""
-    return value in VALID_MEDIA_TYPES
+def is_valid_place_id(value: str) -> bool:
+    """Check if a string looks like a Google place_id."""
+    return bool(value and isinstance(value, str) and PLACE_ID_PATTERN.match(value))
+
+
+def is_valid_lat_lng(lat, lng) -> bool:
+    """Check latitude/longitude bounds."""
+    try:
+        return -90 <= float(lat) <= 90 and -180 <= float(lng) <= 180
+    except (TypeError, ValueError):
+        return False
+
+
+def is_valid_radius(radius_m) -> bool:
+    """Check search radius bounds (meters)."""
+    try:
+        return MIN_RADIUS_M <= int(radius_m) <= MAX_RADIUS_M
+    except (TypeError, ValueError):
+        return False
+
+
+def is_member(room: dict, member_id: str) -> bool:
+    """Check whether a member id belongs to the room."""
+    return bool(member_id) and member_id in (room.get("members") or {})

@@ -18,10 +18,14 @@ Read it before making any architectural decisions.
 ## Pivot Status
 
 - **Stage 1 (done)**: frontend domain swap on mock data + rebrand
-- **Stage 2 (next)**: location capture + settings screens
-- **Stage 3 (pending)**: backend pivot — `backend/` still contains the TMDB-era
-  Lambdas; they are replaced in Stage 3 per DESIGN.md. Don't extend the TMDB
-  code paths.
+- **Stage 2 (done)**: location capture + settings screens
+- **Stage 3 (code done, deploy pending)**: backend pivoted to Google Places —
+  all Lambdas rewritten, unit-tested against moto + stubbed Google HTTP.
+  Deploying needs the Stage 0 prerequisite: a GCP API key in SSM at
+  `/forkd/google-api-key`, then `sam build && sam deploy`. Place-type names in
+  `shared/places.py` (CUISINE_PLACE_TYPES) should be verified against Google's
+  Table A docs on first real call.
+- **Stage 4 (next)**: production polish + real-device shakedown
 
 ## Tech Stack Decisions (Finalized)
 
@@ -81,6 +85,13 @@ GSI1 is for sorted match queries: `GSI1PK=ROOM#{code}#MATCHES#restaurant`,
   layer (`frontend/src/api/mock.ts`) is active whenever `VITE_API_URL` is unset
 - Restaurant photos load from full URLs on the card (`photo_url`) — no image
   host is hardcoded in components (the service worker whitelists photo hosts)
+
+## Testing
+
+- Frontend: `cd frontend && npx vitest run`
+- Backend: `cd backend && python -m pytest tests/` — needs `pytest`, `moto`,
+  and `boto3` installed (venv recommended). Tests run against moto's DynamoDB
+  and stub all Google HTTP via `shared.places._http_json`; no keys needed.
 
 ## Build Order
 

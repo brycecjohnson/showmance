@@ -23,6 +23,13 @@ export function useSwipe() {
           direction,
           name: card.name,
           photo_url: card.photo_url ?? undefined,
+          rating: card.rating,
+          price_level: card.price_level ?? undefined,
+          cuisines: card.cuisines,
+          address: card.address,
+          lat: card.lat,
+          lng: card.lng,
+          maps_url: card.maps_url,
         });
         setLastResult(result);
         return result;

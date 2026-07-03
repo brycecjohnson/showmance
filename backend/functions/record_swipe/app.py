@@ -1,27 +1,37 @@
 """POST /swipe — Record a swipe, update swiped set, detect matches.
 
 Flow:
-1. Validate input (room_code, partner_id, tmdb_id, media_type, direction)
+1. Validate input (room_code, member id, place_id, direction)
 2. Write SWIPE# entity (individual swipe record)
-3. Atomic ADD tmdb_id to SWIPED# set (compact seen-state)
-4. If direction is "right", check if partner also swiped right (GetItem)
-5. If both right, create MATCH# entity
+3. Atomic ADD place_id to SWIPED# set (compact seen-state)
+4. If direction is "right", count right-swipes for this place across members —
+   when every member has swiped right, it's a match (group-ready rule; solo
+   rooms auto-match)
+5. Create MATCH# entity with a display snapshot from the swipe payload
 6. Return swipe result + match status
 """
 
 from datetime import datetime, timezone
 
-from shared.dynamo import get_item, put_item, atomic_add_to_set
-from shared.response import success, created, error, not_found, server_error
+from shared.dynamo import get_item, put_item, query_pk, atomic_add_to_set
+from shared.response import created, error, not_found, server_error
 from shared.validation import (
     get_partner_id, parse_body,
-    is_valid_room_code, is_valid_uuid, is_valid_media_type,
+    is_valid_room_code, is_valid_place_id, is_member,
+)
+
+# Snapshot fields the frontend sends with a right swipe, persisted onto the
+# match so the list renders without extra Places calls. Refreshed by
+# get_matches when older than 30 days (Google ToS).
+SNAPSHOT_FIELDS = (
+    "name", "photo_url", "rating", "price_level", "cuisines",
+    "address", "lat", "lng", "maps_url",
 )
 
 
 def handler(event, context):
-    partner_id = get_partner_id(event)
-    if not partner_id:
+    member_id = get_partner_id(event)
+    if not member_id:
         return error("Missing X-Partner-Id header")
 
     body = parse_body(event)
@@ -29,37 +39,24 @@ def handler(event, context):
         return error("Request body is required")
 
     room_code = body.get("room_code")
-    tmdb_id = body.get("tmdb_id")
-    media_type = body.get("media_type")
+    place_id = body.get("place_id")
     direction = body.get("direction")
-    title = body.get("title", "")
-    poster_path = body.get("poster_path", "")
-    year = body.get("year", "")
 
-    # Validate required fields
     if not room_code or not is_valid_room_code(room_code):
-        return error("Invalid room_code. Expected format: SHOW-XXXX")
+        return error("Invalid room_code. Expected format: EATS-XXXX")
 
-    if tmdb_id is None:
-        return error("tmdb_id is required")
-    try:
-        tmdb_id = int(tmdb_id)
-    except (ValueError, TypeError):
-        return error("tmdb_id must be a number")
-
-    if not media_type or not is_valid_media_type(media_type):
-        return error("media_type must be 'movie' or 'tv'")
+    if not is_valid_place_id(place_id):
+        return error("place_id is required")
 
     if direction not in ("right", "left"):
         return error("direction must be 'right' or 'left'")
 
     try:
-        # Verify room exists and partner is a member
         room = get_item(f"ROOM#{room_code}", "METADATA")
         if not room:
             return not_found(f"Room {room_code} not found")
 
-        if partner_id not in (room.get("partner_1_id"), room.get("partner_2_id")):
+        if not is_member(room, member_id):
             return error("You are not a member of this room", status_code=403)
 
         now = datetime.now(timezone.utc).isoformat()
@@ -67,13 +64,12 @@ def handler(event, context):
         # Step 1: Write individual swipe record
         swipe_item = {
             "PK": f"ROOM#{room_code}",
-            "SK": f"SWIPE#{media_type}#{tmdb_id}#{partner_id}",
+            "SK": f"SWIPE#restaurant#{place_id}#{member_id}",
             "room_code": room_code,
-            "partner_id": partner_id,
-            "tmdb_id": tmdb_id,
-            "media_type": media_type,
+            "partner_id": member_id,
+            "place_id": place_id,
             "direction": direction,
-            "title": title,
+            "name": body.get("name", ""),
             "swiped_at": now,
         }
         put_item(swipe_item)
@@ -81,55 +77,45 @@ def handler(event, context):
         # Step 2: Atomic ADD to swiped set (compact seen-state)
         atomic_add_to_set(
             pk=f"ROOM#{room_code}",
-            sk=f"SWIPED#{media_type}#{partner_id}",
+            sk=f"SWIPED#restaurant#{member_id}",
             attribute="swiped_ids",
-            values={tmdb_id},
+            values={place_id},
         )
 
         # Step 3: Match detection (only for right swipes)
         matched = False
-        is_solo = room.get("is_solo", False)
 
         if direction == "right":
-            if is_solo:
-                # Solo mode: every right swipe is auto-matched
+            member_count = int(room.get("member_count", 1))
+            if room.get("is_solo", False) or member_count == 1:
                 matched = True
-                _create_match(
-                    room_code, tmdb_id, media_type, title, poster_path, year, now,
-                )
             else:
-                # Couples mode: check if partner also swiped right
-                other_partner_id = (
-                    room.get("partner_2_id")
-                    if partner_id == room.get("partner_1_id")
-                    else room.get("partner_1_id")
+                # Group-ready rule: match when every member has swiped right.
+                swipes = query_pk(
+                    f"ROOM#{room_code}",
+                    sk_prefix=f"SWIPE#restaurant#{place_id}#",
                 )
+                right_swipers = {
+                    s["partner_id"] for s in swipes
+                    if s.get("direction") == "right"
+                }
+                matched = len(right_swipers) >= member_count
 
-                if other_partner_id:
-                    # Check if the other partner also swiped right on this title
-                    other_swipe = get_item(
-                        f"ROOM#{room_code}",
-                        f"SWIPE#{media_type}#{tmdb_id}#{other_partner_id}",
-                    )
-                    if other_swipe and other_swipe.get("direction") == "right":
-                        matched = True
-                        _create_match(
-                            room_code, tmdb_id, media_type, title, poster_path, year, now,
-                        )
+            if matched:
+                _create_match(room_code, place_id, body, now)
 
         result = {
             "swipe": "recorded",
             "direction": direction,
-            "tmdb_id": tmdb_id,
+            "place_id": place_id,
             "matched": matched,
         }
 
         if matched:
             result["match"] = {
-                "tmdb_id": tmdb_id,
-                "media_type": media_type,
-                "title": title,
-                "poster_path": poster_path,
+                "place_id": place_id,
+                "name": body.get("name", ""),
+                "photo_url": body.get("photo_url"),
                 "matched_at": now,
             }
 
@@ -140,29 +126,28 @@ def handler(event, context):
         return server_error("Failed to record swipe")
 
 
-def _create_match(
-    room_code: str,
-    tmdb_id: int,
-    media_type: str,
-    title: str,
-    poster_path: str,
-    year: str,
-    matched_at: str,
-) -> None:
-    """Create a MATCH entity when both partners swipe right."""
+def _to_dynamo_safe(value):
+    """DynamoDB rejects float — stringify them (parsed back on read)."""
+    if isinstance(value, float):
+        return str(value)
+    return value
+
+
+def _create_match(room_code: str, place_id: str, body: dict, matched_at: str) -> None:
+    """Create a MATCH entity with a display snapshot."""
     match_item = {
         "PK": f"ROOM#{room_code}",
-        "SK": f"MATCH#{media_type}#{tmdb_id}",
+        "SK": f"MATCH#restaurant#{place_id}",
         "room_code": room_code,
-        "tmdb_id": tmdb_id,
-        "media_type": media_type,
-        "title": title,
-        "poster_path": poster_path,
-        "year": year,
+        "place_id": place_id,
         "matched_at": matched_at,
-        "watched": False,
+        "visited": False,
+        "snapshot_at": matched_at,
         # GSI1 for sorted match queries
-        "GSI1PK": f"ROOM#{room_code}#MATCHES#{media_type}",
+        "GSI1PK": f"ROOM#{room_code}#MATCHES#restaurant",
         "GSI1SK": matched_at,
     }
+    for field in SNAPSHOT_FIELDS:
+        if body.get(field) is not None:
+            match_item[field] = _to_dynamo_safe(body[field])
     put_item(match_item)
