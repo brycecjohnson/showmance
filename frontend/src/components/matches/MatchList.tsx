@@ -6,6 +6,7 @@ import { MatchFilters, type SortOption } from './MatchFilters';
 import { CardDetail } from '../cards/CardDetail';
 import type { RestaurantCard } from '../../types/card';
 import type { Match } from '../../types/match';
+import { setLastSeenMatches } from '../../utils/storage';
 import './MatchList.css';
 
 interface MatchListProps {
@@ -22,7 +23,8 @@ export function MatchList({ onMatchCount }: MatchListProps) {
   const [detailMatch, setDetailMatch] = useState<Match | null>(null);
 
   useEffect(() => {
-    fetchMatches();
+    // Opening the list clears the "new match" badge on the bottom nav.
+    fetchMatches().then(() => setLastSeenMatches(new Date().toISOString()));
   }, [fetchMatches]);
 
   const filtered = useMemo(() => {

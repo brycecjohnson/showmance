@@ -1,12 +1,11 @@
 import { NavLink } from 'react-router-dom';
 import { Badge } from '../ui/Badge';
+import { useNewMatchCount } from '../../hooks/useNewMatchCount';
 import './BottomNav.css';
 
-interface BottomNavProps {
-  newMatchCount?: number;
-}
+export function BottomNav() {
+  const newMatchCount = useNewMatchCount();
 
-export function BottomNav({ newMatchCount = 0 }: BottomNavProps) {
   return (
     <nav className="bottom-nav">
       <NavLink
