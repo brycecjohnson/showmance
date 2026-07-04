@@ -286,7 +286,7 @@
 
 .card-detail__action-btn--like {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-bg);
 }
 
 .card-detail__action-btn--like:active {

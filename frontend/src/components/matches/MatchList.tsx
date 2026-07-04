@@ -7,6 +7,8 @@ import { CardDetail } from '../cards/CardDetail';
 import type { RestaurantCard } from '../../types/card';
 import type { Match } from '../../types/match';
 import { setLastSeenMatches } from '../../utils/storage';
+import { Toast } from '../ui/Toast';
+import { useToast } from '../../hooks/useToast';
 import './MatchList.css';
 
 interface MatchListProps {
@@ -21,6 +23,7 @@ export function MatchList({ onMatchCount }: MatchListProps) {
   const [sortBy, setSortBy] = useState<SortOption>('matched_at');
   const [showVisited, setShowVisited] = useState(false);
   const [detailMatch, setDetailMatch] = useState<Match | null>(null);
+  const { toast, showToast, clearToast } = useToast();
 
   useEffect(() => {
     // Opening the list clears the "new match" badge on the bottom nav.
@@ -68,9 +71,11 @@ export function MatchList({ onMatchCount }: MatchListProps) {
 
   const handleMarkVisited = useCallback(
     (placeId: string) => {
-      markVisited(placeId);
+      markVisited(placeId).catch(() => {
+        showToast("Couldn't update — check your connection and try again.");
+      });
     },
-    [markVisited],
+    [markVisited, showToast],
   );
 
   const handleMatchTap = useCallback((match: Match) => {
@@ -83,10 +88,12 @@ export function MatchList({ onMatchCount }: MatchListProps) {
 
   const handleDetailMarkVisited = useCallback(() => {
     if (detailMatch) {
-      markVisited(detailMatch.place_id);
+      markVisited(detailMatch.place_id).catch(() => {
+        showToast("Couldn't update — check your connection and try again.");
+      });
       setDetailMatch(null);
     }
-  }, [detailMatch, markVisited]);
+  }, [detailMatch, markVisited, showToast]);
 
   const detailCard: RestaurantCard | null = detailMatch
     ? {
@@ -175,6 +182,10 @@ export function MatchList({ onMatchCount }: MatchListProps) {
         onMarkVisited={handleDetailMarkVisited}
         isVisited={detailMatch?.visited}
       />
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={clearToast} />
+      )}
     </div>
   );
 }

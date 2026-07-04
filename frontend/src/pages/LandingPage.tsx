@@ -5,6 +5,8 @@ import { Button } from '../components/ui/Button';
 import { CreateRoom } from '../components/room/CreateRoom';
 import { JoinRoom } from '../components/room/JoinRoom';
 import { RoomCreated } from '../components/room/RoomCreated';
+import { Toast } from '../components/ui/Toast';
+import { consumeSessionEndedFlag } from '../utils/storage';
 import './LandingPage.css';
 
 type LandingView = 'home' | 'join' | 'created';
@@ -13,6 +15,8 @@ export function LandingPage() {
   const navigate = useNavigate();
   const { roomCode, createRoom } = useRoomContext();
   const [view, setView] = useState<LandingView>('home');
+  // Set once by RoomContext when a stale/deleted room forces the user back here
+  const [sessionEnded] = useState(consumeSessionEndedFlag);
 
   // If already in a room, redirect to onboarding/swipe
   useEffect(() => {
@@ -77,6 +81,14 @@ export function LandingPage() {
           <RoomCreated roomCode={roomCode} onContinue={handleContinue} />
         )}
       </div>
+
+      {sessionEnded && (
+        <Toast
+          message="Your room session ended. Start a new one or join with a code."
+          type="info"
+          onClose={() => {}}
+        />
+      )}
     </div>
   );
 }

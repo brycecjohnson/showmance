@@ -57,7 +57,7 @@
 
 .install-prompt__btn--install {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-bg);
 }
 
 .install-prompt__btn--install:active {

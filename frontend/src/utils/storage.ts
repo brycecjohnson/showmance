@@ -35,3 +35,16 @@ export function setLastSeenMatches(timestamp: string): void {
 export function clearSession(): void {
   Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
 }
+
+const SESSION_ENDED_KEY = 'forkd_session_ended';
+
+/** True once, then clears itself — set when RoomContext force-ends a dead session. */
+export function consumeSessionEndedFlag(): boolean {
+  const wasSet = sessionStorage.getItem(SESSION_ENDED_KEY) === '1';
+  if (wasSet) sessionStorage.removeItem(SESSION_ENDED_KEY);
+  return wasSet;
+}
+
+export function flagSessionEnded(): void {
+  sessionStorage.setItem(SESSION_ENDED_KEY, '1');
+}

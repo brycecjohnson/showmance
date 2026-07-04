@@ -9,6 +9,7 @@ import {
 import type { Room } from '../types/room';
 import * as storage from '../utils/storage';
 import * as roomsApi from '../api/rooms';
+import { ApiError } from '../api/client';
 
 interface RoomContextValue {
   roomCode: string | null;
@@ -46,6 +47,17 @@ export function RoomProvider({ children }: { children: ReactNode }) {
       const data = await roomsApi.getRoom(code);
       setRoom(data);
     } catch (err) {
+      // Room deleted server-side, or this device's saved membership is stale
+      // (403). There's no recovering in place — clear the dead session so
+      // ProtectedRoute bounces to the landing page instead of getting stuck.
+      if (err instanceof ApiError && (err.status === 404 || err.status === 403)) {
+        storage.flagSessionEnded();
+        storage.clearSession();
+        setRoomCode(null);
+        setPartnerId(null);
+        setRoom(null);
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Failed to load room');
     } finally {
       setIsLoading(false);

@@ -10,6 +10,8 @@ import { Spinner } from '../components/ui/Spinner';
 import { savePreferences } from '../api/rooms';
 import type { SetLocationParams } from '../api/rooms';
 import { isOnboardingComplete, setOnboardingComplete } from '../utils/storage';
+import { Toast } from '../components/ui/Toast';
+import { useToast } from '../hooks/useToast';
 import './OnboardingPage.css';
 
 type Step = 'location' | 'prices' | 'cuisines' | 'compat' | 'saving';
@@ -24,6 +26,7 @@ export function OnboardingPage() {
   const [cuisinesLiked, setCuisinesLiked] = useState<string[]>([]);
   const [cuisinesDisliked, setCuisinesDisliked] = useState<string[]>([]);
   const [autoSkipped, setAutoSkipped] = useState(false);
+  const { toast, showToast, clearToast } = useToast();
 
   // Partner 2 joins a room that already has a location — skip that step.
   // Render-phase state adjustment (guarded) per React's derived-state pattern.
@@ -83,6 +86,7 @@ export function OnboardingPage() {
       await loadRoom(); // pick up saved price levels on the room
       navigate('/swipe');
     } catch {
+      showToast("Couldn't save your tastes. Check your connection and try again.");
       setStep('cuisines');
     }
   };
@@ -117,6 +121,10 @@ export function OnboardingPage() {
           <Spinner size="lg" />
           <p>Saving your tastes...</p>
         </div>
+      )}
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={clearToast} />
       )}
     </div>
   );
