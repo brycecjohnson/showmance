@@ -45,13 +45,16 @@ def update_item(pk: str, sk: str, update_expr: str, expr_values: dict,
     return get_table().update_item(**kwargs)
 
 
-def query_pk(pk: str, sk_prefix: str = None, limit: int = None) -> list[dict]:
+def query_pk(pk: str, sk_prefix: str = None, limit: int = None,
+             consistent: bool = False) -> list[dict]:
     """Query items by PK with optional SK prefix."""
     kwargs = {"KeyConditionExpression": Key("PK").eq(pk)}
     if sk_prefix:
         kwargs["KeyConditionExpression"] &= Key("SK").begins_with(sk_prefix)
     if limit:
         kwargs["Limit"] = limit
+    if consistent:
+        kwargs["ConsistentRead"] = True
     resp = get_table().query(**kwargs)
     return resp.get("Items", [])
 

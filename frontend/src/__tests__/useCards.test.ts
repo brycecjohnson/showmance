@@ -3,8 +3,7 @@ import type { ReactNode } from 'react';
 import { createElement } from 'react';
 import { useCards } from '../hooks/useCards';
 import { RoomProvider } from '../context/RoomContext';
-import { ModeProvider } from '../context/ModeContext';
-import type { Card } from '../types/card';
+import type { RestaurantCard } from '../types/card';
 
 // ── Mocks ────────────────────────────────────────────────────
 
@@ -16,22 +15,23 @@ vi.mock('../api/rooms', () => ({
   createRoom: vi.fn(),
   joinRoom: vi.fn(),
   getRoom: vi.fn().mockResolvedValue({
-    room_code: 'SHOW-TEST',
+    room_code: 'EATS-TEST',
     created_at: new Date().toISOString(),
-    partner_1_id: 'p1',
-    partner_2_id: null,
-    streaming_services: [],
+    partner_number: 1,
+    other_partner_joined: false,
     onboarding_complete: false,
+    is_solo: false,
+    location: { lat: 30.2672, lng: -97.7431, label: 'Austin, TX' },
+    radius_m: 8047,
+    price_levels: [1, 2],
   }),
 }));
 
 vi.mock('../utils/storage', () => ({
-  getRoomCode: () => 'SHOW-TEST',
+  getRoomCode: () => 'EATS-TEST',
   getPartnerId: () => 'partner-1',
-  getMode: () => 'movie',
   setRoomCode: vi.fn(),
   setPartnerId: vi.fn(),
-  setMode: vi.fn(),
   setOnboardingComplete: vi.fn(),
   clearSession: vi.fn(),
 }));
@@ -39,23 +39,22 @@ vi.mock('../utils/storage', () => ({
 import { getCards } from '../api/cards';
 const mockGetCards = vi.mocked(getCards);
 
-function makeCard(id: number, type: 'movie' | 'tv' = 'movie'): Card {
+function makeCard(id: number): RestaurantCard {
   return {
-    tmdb_id: id,
-    media_type: type,
-    title: `Title ${id}`,
-    poster_path: `/poster_${id}.jpg`,
-    backdrop_path: null,
-    overview: 'Overview',
-    release_year: 2020,
-    rating: 8.0,
-    genre_ids: [18],
-    genre_names: ['Drama'],
+    place_id: `place-${id}`,
+    name: `Restaurant ${id}`,
+    photo_url: `https://images.example.com/photo_${id}.jpg`,
+    cuisines: ['Italian'],
+    rating: 4.5,
+    rating_count: 100,
+    price_level: 2,
+    address: '123 Main St',
+    distance_mi: 1.2,
   };
 }
 
 function wrapper({ children }: { children: ReactNode }) {
-  return createElement(RoomProvider, null, createElement(ModeProvider, null, children));
+  return createElement(RoomProvider, null, children);
 }
 
 // ── Tests ────────────────────────────────────────────────────
@@ -68,7 +67,7 @@ beforeEach(() => {
 
 describe('useCards', () => {
   it('fetches cards on mount via fetchCards', async () => {
-    // Return enough cards (> prefetch threshold of 5) to avoid triggering prefetch
+    // 8 cards keeps us above the prefetch threshold
     const cards = Array.from({ length: 8 }, (_, i) => makeCard(i + 1));
     mockGetCards.mockResolvedValueOnce({ cards, has_more: true });
 
@@ -81,7 +80,7 @@ describe('useCards', () => {
     await waitFor(() => {
       expect(result.current.cards).toHaveLength(8);
     });
-    expect(result.current.cards[0].tmdb_id).toBe(1);
+    expect(result.current.cards[0].place_id).toBe('place-1');
     expect(result.current.hasMore).toBe(true);
   });
 
@@ -114,8 +113,11 @@ describe('useCards', () => {
       expect(result.current.cards).toHaveLength(10);
     });
 
-    const ids = result.current.cards.map((c) => c.tmdb_id);
-    expect(ids).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    const ids = result.current.cards.map((c) => c.place_id);
+    expect(ids).toEqual([
+      'place-1', 'place-2', 'place-3', 'place-4', 'place-5',
+      'place-6', 'place-7', 'place-8', 'place-9', 'place-10',
+    ]);
   });
 
   it('removeTopCard removes the first card', async () => {
@@ -137,6 +139,6 @@ describe('useCards', () => {
     });
 
     expect(result.current.cards).toHaveLength(7);
-    expect(result.current.cards[0].tmdb_id).toBe(20);
+    expect(result.current.cards[0].place_id).toBe('place-20');
   });
 });

@@ -1,12 +1,10 @@
 import { useCallback, useState } from 'react';
 import { getMatches, updateMatch, getTonightsPick } from '../api/matches';
 import { useRoomContext } from '../context/RoomContext';
-import { useModeContext } from '../context/ModeContext';
 import type { Match } from '../types/match';
 
 export function useMatches() {
   const { roomCode } = useRoomContext();
-  const { mode } = useModeContext();
   const [matches, setMatches] = useState<Match[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -14,21 +12,21 @@ export function useMatches() {
     if (!roomCode) return;
     setIsLoading(true);
     try {
-      const data = await getMatches(roomCode, mode);
+      const data = await getMatches(roomCode);
       setMatches(data.matches);
     } finally {
       setIsLoading(false);
     }
-  }, [roomCode, mode]);
+  }, [roomCode]);
 
-  const markWatched = useCallback(
-    async (tmdbId: number) => {
+  const markVisited = useCallback(
+    async (placeId: string) => {
       if (!roomCode) return;
-      await updateMatch(roomCode, tmdbId, { watched: true });
+      await updateMatch(roomCode, placeId, { visited: true });
       setMatches((prev) =>
         prev.map((m) =>
-          m.tmdb_id === tmdbId
-            ? { ...m, watched: true, watched_at: new Date().toISOString() }
+          m.place_id === placeId
+            ? { ...m, visited: true, visited_at: new Date().toISOString() }
             : m,
         ),
       );
@@ -38,9 +36,9 @@ export function useMatches() {
 
   const pickTonight = useCallback(async (): Promise<Match | null> => {
     if (!roomCode) return null;
-    const data = await getTonightsPick(roomCode, mode);
+    const data = await getTonightsPick(roomCode);
     return data.match;
-  }, [roomCode, mode]);
+  }, [roomCode]);
 
-  return { matches, isLoading, fetchMatches, markWatched, pickTonight };
+  return { matches, isLoading, fetchMatches, markVisited, pickTonight };
 }

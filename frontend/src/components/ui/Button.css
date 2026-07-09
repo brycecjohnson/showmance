@@ -26,7 +26,9 @@
 /* Variants */
 .btn--primary {
   background-color: var(--color-accent);
-  color: #fff;
+  /* White text on the coral accent is only ~2.8:1 contrast (fails WCAG AA).
+     The app's own dark background color reads at ~6.8:1 instead. */
+  color: var(--color-bg);
 }
 
 .btn--primary:hover:not(:disabled) {

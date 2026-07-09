@@ -9,6 +9,7 @@ import {
 import type { Room } from '../types/room';
 import * as storage from '../utils/storage';
 import * as roomsApi from '../api/rooms';
+import { ApiError } from '../api/client';
 
 interface RoomContextValue {
   roomCode: string | null;
@@ -17,9 +18,13 @@ interface RoomContextValue {
   isSolo: boolean;
   isLoading: boolean;
   error: string | null;
+  /** Set when a dead room (404/403) forced the user back to the landing page. */
+  sessionEnded: boolean;
+  clearSessionEnded: () => void;
   createRoom: (solo?: boolean) => Promise<void>;
   joinRoom: (code: string) => Promise<void>;
   loadRoom: () => Promise<void>;
+  updateLocation: (params: roomsApi.SetLocationParams) => Promise<void>;
   leaveRoom: () => void;
 }
 
@@ -35,6 +40,9 @@ export function RoomProvider({ children }: { children: ReactNode }) {
   const [room, setRoom] = useState<Room | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionEnded, setSessionEnded] = useState(false);
+
+  const clearSessionEnded = useCallback(() => setSessionEnded(false), []);
 
   const loadRoom = useCallback(async () => {
     const code = storage.getRoomCode();
@@ -45,6 +53,17 @@ export function RoomProvider({ children }: { children: ReactNode }) {
       const data = await roomsApi.getRoom(code);
       setRoom(data);
     } catch (err) {
+      // Room deleted server-side, or this device's saved membership is stale
+      // (403). There's no recovering in place — clear the dead session so
+      // ProtectedRoute bounces to the landing page instead of getting stuck.
+      if (err instanceof ApiError && (err.status === 404 || err.status === 403)) {
+        storage.clearSession();
+        setRoomCode(null);
+        setPartnerId(null);
+        setRoom(null);
+        setSessionEnded(true);
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Failed to load room');
     } finally {
       setIsLoading(false);
@@ -83,6 +102,17 @@ export function RoomProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const updateLocation = useCallback(async (params: roomsApi.SetLocationParams) => {
+    const code = storage.getRoomCode();
+    if (!code) throw new Error('Not in a room');
+    const data = await roomsApi.setRoomLocation(code, params);
+    setRoom((prev) =>
+      prev
+        ? { ...prev, location: data.location, radius_m: data.radius_m }
+        : prev,
+    );
+  }, []);
+
   const leaveRoom = useCallback(() => {
     storage.clearSession();
     setRoomCode(null);
@@ -105,9 +135,12 @@ export function RoomProvider({ children }: { children: ReactNode }) {
         isSolo: room?.is_solo ?? false,
         isLoading,
         error,
+        sessionEnded,
+        clearSessionEnded,
         createRoom,
         joinRoom,
         loadRoom,
+        updateLocation,
         leaveRoom,
       }}
     >

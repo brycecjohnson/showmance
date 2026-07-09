@@ -1,16 +1,15 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from './Button';
-import { TMDB_IMAGE_BASE } from '../../utils/constants';
 import './MatchPopup.css';
 
 interface MatchPopupProps {
   isOpen: boolean;
-  title: string;
-  posterPath: string | null;
+  name: string;
+  photoUrl: string | null;
   onClose: () => void;
 }
 
-export function MatchPopup({ isOpen, title, posterPath, onClose }: MatchPopupProps) {
+export function MatchPopup({ isOpen, name, photoUrl, onClose }: MatchPopupProps) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -30,15 +29,15 @@ export function MatchPopup({ isOpen, title, posterPath, onClose }: MatchPopupPro
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="match-popup__title">It's a Match!</h2>
-            {posterPath && (
+            {photoUrl && (
               <img
                 className="match-popup__poster"
-                src={`${TMDB_IMAGE_BASE}/w342${posterPath}`}
-                alt={title}
+                src={photoUrl}
+                alt={name}
               />
             )}
-            <p className="match-popup__name">{title}</p>
-            <p className="match-popup__subtitle">You both swiped right</p>
+            <p className="match-popup__name">{name}</p>
+            <p className="match-popup__subtitle">You both want to eat here</p>
             <Button onClick={onClose} fullWidth>
               Keep Swiping
             </Button>

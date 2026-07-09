@@ -1,91 +1,80 @@
 import { useMemo } from 'react';
+import { priceLabel } from '../../utils/constants';
 import type { Match } from '../../types/match';
 import './MatchFilters.css';
 
-export type SortOption = 'matched_at' | 'rating' | 'release_year';
+export type SortOption = 'matched_at' | 'rating' | 'distance';
 
 interface MatchFiltersProps {
   matches: Match[];
-  selectedGenre: string | null;
-  selectedService: string | null;
+  selectedCuisine: string | null;
+  selectedPrice: number | null;
   sortBy: SortOption;
-  showWatched: boolean;
-  onGenreChange: (genre: string | null) => void;
-  onServiceChange: (service: string | null) => void;
+  showVisited: boolean;
+  onCuisineChange: (cuisine: string | null) => void;
+  onPriceChange: (price: number | null) => void;
   onSortChange: (sort: SortOption) => void;
-  onShowWatchedChange: (show: boolean) => void;
+  onShowVisitedChange: (show: boolean) => void;
 }
 
 export function MatchFilters({
   matches,
-  selectedGenre,
-  selectedService,
+  selectedCuisine,
+  selectedPrice,
   sortBy,
-  showWatched,
-  onGenreChange,
-  onServiceChange,
+  showVisited,
+  onCuisineChange,
+  onPriceChange,
   onSortChange,
-  onShowWatchedChange,
+  onShowVisitedChange,
 }: MatchFiltersProps) {
-  const genres = useMemo(() => {
+  const cuisines = useMemo(() => {
     const set = new Set<string>();
-    matches.forEach((m) => m.genre_names.forEach((g) => set.add(g)));
+    matches.forEach((m) => m.cuisines.forEach((c) => set.add(c)));
     return Array.from(set).sort();
   }, [matches]);
 
-  const services = useMemo(() => {
-    const set = new Set<string>();
-    matches.forEach((m) => m.streaming_services.forEach((s) => set.add(s)));
-    return Array.from(set).sort();
+  const prices = useMemo(() => {
+    const set = new Set<number>();
+    matches.forEach((m) => {
+      if (m.price_level) set.add(m.price_level);
+    });
+    return Array.from(set).sort((a, b) => a - b);
   }, [matches]);
-
-  const formatServiceName = (id: string) => {
-    const names: Record<string, string> = {
-      netflix: 'Netflix',
-      hulu: 'Hulu',
-      disney_plus: 'Disney+',
-      hbo_max: 'HBO Max',
-      amazon_prime: 'Prime',
-      apple_tv: 'Apple TV+',
-      peacock: 'Peacock',
-      paramount_plus: 'Paramount+',
-    };
-    return names[id] || id;
-  };
 
   return (
     <div className="match-filters">
       <div className="match-filters__row">
         <div className="match-filters__chips">
-          {genres.length > 0 && (
+          {cuisines.length > 0 && (
             <>
               <button
-                className={`match-filters__chip ${selectedGenre === null ? 'match-filters__chip--active' : ''}`}
-                onClick={() => onGenreChange(null)}
+                className={`match-filters__chip ${selectedCuisine === null ? 'match-filters__chip--active' : ''}`}
+                onClick={() => onCuisineChange(null)}
               >
-                All Genres
+                All Cuisines
               </button>
-              {genres.map((genre) => (
+              {cuisines.map((cuisine) => (
                 <button
-                  key={genre}
-                  className={`match-filters__chip ${selectedGenre === genre ? 'match-filters__chip--active' : ''}`}
-                  onClick={() => onGenreChange(selectedGenre === genre ? null : genre)}
+                  key={cuisine}
+                  className={`match-filters__chip ${selectedCuisine === cuisine ? 'match-filters__chip--active' : ''}`}
+                  onClick={() => onCuisineChange(selectedCuisine === cuisine ? null : cuisine)}
                 >
-                  {genre}
+                  {cuisine}
                 </button>
               ))}
             </>
           )}
-          {services.length > 0 && genres.length > 0 && (
+          {prices.length > 0 && cuisines.length > 0 && (
             <span className="match-filters__divider" />
           )}
-          {services.map((service) => (
+          {prices.map((price) => (
             <button
-              key={service}
-              className={`match-filters__chip ${selectedService === service ? 'match-filters__chip--active' : ''}`}
-              onClick={() => onServiceChange(selectedService === service ? null : service)}
+              key={price}
+              className={`match-filters__chip ${selectedPrice === price ? 'match-filters__chip--active' : ''}`}
+              onClick={() => onPriceChange(selectedPrice === price ? null : price)}
             >
-              {formatServiceName(service)}
+              {priceLabel(price)}
             </button>
           ))}
         </div>
@@ -99,16 +88,16 @@ export function MatchFilters({
         >
           <option value="matched_at">Date Matched</option>
           <option value="rating">Rating</option>
-          <option value="release_year">Release Year</option>
+          <option value="distance">Distance</option>
         </select>
 
         <label className="match-filters__toggle">
           <input
             type="checkbox"
-            checked={showWatched}
-            onChange={(e) => onShowWatchedChange(e.target.checked)}
+            checked={showVisited}
+            onChange={(e) => onShowVisitedChange(e.target.checked)}
           />
-          <span className="match-filters__toggle-label">Show watched</span>
+          <span className="match-filters__toggle-label">Show visited</span>
         </label>
       </div>
     </div>

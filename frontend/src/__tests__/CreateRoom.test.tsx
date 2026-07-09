@@ -17,8 +17,6 @@ vi.mock('../utils/storage', () => ({
   getPartnerId: () => null,
   setRoomCode: vi.fn(),
   setPartnerId: vi.fn(),
-  getMode: () => 'movie',
-  setMode: vi.fn(),
   clearSession: vi.fn(),
   setOnboardingComplete: vi.fn(),
 }));

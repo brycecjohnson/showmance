@@ -1,36 +1,39 @@
 import { useState } from 'react';
-import { STREAMING_SERVICES } from '../../utils/constants';
+import { PRICE_LEVELS } from '../../utils/constants';
 import { Button } from '../ui/Button';
 import './RoomSetup.css';
 
 interface RoomSetupProps {
-  onComplete: (services: string[]) => void;
+  initial?: number[];
+  submitLabel?: string;
+  onComplete: (priceLevels: number[]) => void;
 }
 
-export function RoomSetup({ onComplete }: RoomSetupProps) {
-  const [selected, setSelected] = useState<string[]>([]);
+export function RoomSetup({ initial = [], submitLabel = 'Continue', onComplete }: RoomSetupProps) {
+  const [selected, setSelected] = useState<number[]>(initial);
 
-  const toggle = (id: string) => {
+  const toggle = (level: number) => {
     setSelected((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
+      prev.includes(level) ? prev.filter((l) => l !== level) : [...prev, level],
     );
   };
 
   return (
     <div className="room-setup">
-      <h2 className="room-setup__title">Your Streaming Services</h2>
+      <h2 className="room-setup__title">What's Your Budget?</h2>
       <p className="room-setup__subtitle">
-        Select the services you subscribe to. We'll only show titles you can actually watch.
+        Pick the price ranges you're comfortable with. We'll only show places that fit.
       </p>
       <div className="room-setup__grid">
-        {STREAMING_SERVICES.map((service) => (
+        {PRICE_LEVELS.map((price) => (
           <button
-            key={service.id}
-            className={`room-setup__service ${selected.includes(service.id) ? 'room-setup__service--active' : ''}`}
-            onClick={() => toggle(service.id)}
+            key={price.level}
+            className={`room-setup__service ${selected.includes(price.level) ? 'room-setup__service--active' : ''}`}
+            onClick={() => toggle(price.level)}
             type="button"
           >
-            {service.name}
+            <span className="room-setup__price-label">{price.label}</span>
+            <span className="room-setup__price-desc">{price.description}</span>
           </button>
         ))}
       </div>
@@ -40,14 +43,14 @@ export function RoomSetup({ onComplete }: RoomSetupProps) {
         size="lg"
         disabled={selected.length === 0}
       >
-        Continue
+        {submitLabel}
       </Button>
       <Button
         variant="ghost"
         onClick={() => onComplete([])}
         fullWidth
       >
-        Skip for now
+        Any price is fine
       </Button>
     </div>
   );

@@ -1,6 +1,6 @@
-const CACHE_VERSION = 2;
-const STATIC_CACHE = `showmance-static-v${CACHE_VERSION}`;
-const IMAGE_CACHE = `showmance-images-v${CACHE_VERSION}`;
+const CACHE_VERSION = 3;
+const STATIC_CACHE = `forkd-static-v${CACHE_VERSION}`;
+const IMAGE_CACHE = `forkd-images-v${CACHE_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 const IMAGE_CACHE_LIMIT = 200;
 
@@ -13,8 +13,13 @@ const PRECACHE_URLS = [
 // Static asset extensions to cache-first
 const STATIC_EXTENSIONS = /\.(js|css|woff2?|ttf|otf|eot|ico|png|svg)$/;
 
-// TMDB image domains
-const TMDB_IMAGE_HOST = 'image.tmdb.org';
+// Restaurant photo hosts (mock fixtures + Google Places photo CDN)
+const IMAGE_HOSTS = [
+  'images.unsplash.com',
+  'places.googleapis.com',
+  'lh3.googleusercontent.com',
+  'maps.googleapis.com',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -64,8 +69,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // TMDB poster images: cache-first, evict oldest when over limit
-  if (url.hostname === TMDB_IMAGE_HOST) {
+  // Restaurant photos: cache-first, evict oldest when over limit
+  if (IMAGE_HOSTS.includes(url.hostname)) {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ModeToggle } from '../components/layout/ModeToggle';
+import { useNavigate } from 'react-router-dom';
 import { RoomCodeChip } from '../components/ui/RoomCodeChip';
 import { CardStack } from '../components/cards/CardStack';
 import { CardDetail } from '../components/cards/CardDetail';
@@ -8,31 +8,27 @@ import { Toast } from '../components/ui/Toast';
 import { useSwipe } from '../hooks/useSwipe';
 import { useRoomContext } from '../context/RoomContext';
 import { useToast } from '../hooks/useToast';
-import type { Card } from '../types/card';
+import type { RestaurantCard } from '../types/card';
 import type { SwipeDirection } from '../types/swipe';
 import './SwipePage.css';
 
 export function SwipePage() {
+  const navigate = useNavigate();
   const { swipe, clearResult } = useSwipe();
   const { isSolo } = useRoomContext();
   const triggerRef = useRef<((dir: 'left' | 'right') => void) | null>(null);
-  const [matchInfo, setMatchInfo] = useState<{ title: string; posterPath: string | null } | null>(null);
-  const [detailCard, setDetailCard] = useState<Card | null>(null);
+  const [matchInfo, setMatchInfo] = useState<{ name: string; photoUrl: string | null } | null>(null);
+  const [detailCard, setDetailCard] = useState<RestaurantCard | null>(null);
   const { toast, showToast, clearToast } = useToast();
-  // Keep a ref of the current visible cards so handleSwipe can find card data
-  const cardsRef = useRef<Card[]>([]);
 
   const handleSwipe = useCallback(
-    async (tmdbId: number, direction: SwipeDirection, card?: Card) => {
-      // Card can be passed directly from CardStack, or looked up from ref
-      const swipeCard = card ?? cardsRef.current.find((c) => c.tmdb_id === tmdbId);
-      if (!swipeCard) return;
+    async (_placeId: string, direction: SwipeDirection, card: RestaurantCard) => {
       try {
-        const result = await swipe(swipeCard, direction);
+        const result = await swipe(card, direction);
         if (result.matched && result.match && !isSolo) {
           setMatchInfo({
-            title: result.match.title,
-            posterPath: result.match.poster_path,
+            name: result.match.name,
+            photoUrl: result.match.photo_url,
           });
         }
       } catch {
@@ -47,7 +43,7 @@ export function SwipePage() {
     clearResult();
   }, [clearResult]);
 
-  const handleCardTap = useCallback((card: Card) => {
+  const handleCardTap = useCallback((card: RestaurantCard) => {
     setDetailCard(card);
   }, []);
 
@@ -85,10 +81,20 @@ export function SwipePage() {
   return (
     <div className="swipe-page">
       <header className="swipe-page__header">
-        <h1 className="swipe-page__title">Showmance</h1>
+        <h1 className="swipe-page__title">Forkd</h1>
         <div className="swipe-page__controls">
           <RoomCodeChip />
-          <ModeToggle />
+          <button
+            className="settings-icon-btn"
+            onClick={() => navigate('/settings')}
+            type="button"
+            aria-label="Settings"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33h.01a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51h.01a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v.01a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
+            </svg>
+          </button>
         </div>
       </header>
 
@@ -121,8 +127,8 @@ export function SwipePage() {
 
       <MatchPopup
         isOpen={matchInfo !== null}
-        title={matchInfo?.title ?? ''}
-        posterPath={matchInfo?.posterPath ?? null}
+        name={matchInfo?.name ?? ''}
+        photoUrl={matchInfo?.photoUrl ?? null}
         onClose={handleCloseMatch}
       />
 

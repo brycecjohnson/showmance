@@ -5,13 +5,14 @@ import { Button } from '../components/ui/Button';
 import { CreateRoom } from '../components/room/CreateRoom';
 import { JoinRoom } from '../components/room/JoinRoom';
 import { RoomCreated } from '../components/room/RoomCreated';
+import { Toast } from '../components/ui/Toast';
 import './LandingPage.css';
 
 type LandingView = 'home' | 'join' | 'created';
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const { roomCode, createRoom } = useRoomContext();
+  const { roomCode, createRoom, sessionEnded, clearSessionEnded } = useRoomContext();
   const [view, setView] = useState<LandingView>('home');
 
   // If already in a room, redirect to onboarding/swipe
@@ -41,11 +42,11 @@ export function LandingPage() {
   return (
     <div className="landing">
       <div className="landing__content">
-        <h1 className="landing__title">Showmance</h1>
-        <p className="landing__tagline">Swipe together. Watch together.</p>
+        <h1 className="landing__title">Forkd</h1>
+        <p className="landing__tagline">Swipe together. Eat together.</p>
         <p className="landing__description">
-          Find your next watch with your partner. Swipe on movies and TV shows
-          — when you both swipe right, it's a match.
+          Can't decide where to eat? Swipe on nearby restaurants with your
+          partner — when you both swipe right, it's a match.
         </p>
       </div>
 
@@ -65,7 +66,7 @@ export function LandingPage() {
             <Button variant="secondary" fullWidth size="lg" onClick={handleSolo}>
               Solo Mode
             </Button>
-            <p className="landing__solo-hint">Pick shows for yourself</p>
+            <p className="landing__solo-hint">Build your own list of places to try</p>
           </>
         )}
 
@@ -78,10 +79,13 @@ export function LandingPage() {
         )}
       </div>
 
-      <footer className="landing__attribution">
-        <img src="/tmdb-logo.svg" alt="TMDB" className="landing__tmdb-logo" />
-        <p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
-      </footer>
+      {sessionEnded && (
+        <Toast
+          message="Your room session ended. Start a new one or join with a code."
+          type="info"
+          onClose={clearSessionEnded}
+        />
+      )}
     </div>
   );
 }

@@ -1,30 +1,19 @@
 import { useCallback } from 'react';
 import { motion, AnimatePresence, type PanInfo } from 'framer-motion';
-import { TMDB_IMAGE_BASE } from '../../utils/constants';
-import type { Card } from '../../types/card';
+import { priceLabel } from '../../utils/constants';
+import type { RestaurantCard } from '../../types/card';
 import './CardDetail.css';
 
-const STREAMING_LABELS: Record<string, string> = {
-  netflix: 'Netflix',
-  hulu: 'Hulu',
-  disney_plus: 'Disney+',
-  hbo_max: 'HBO Max',
-  amazon_prime: 'Prime',
-  apple_tv: 'Apple TV+',
-  peacock: 'Peacock',
-  paramount_plus: 'Paramount+',
-};
-
 interface CardDetailProps {
-  card: Card | null;
+  card: RestaurantCard | null;
   isOpen: boolean;
   onClose: () => void;
   /** Swipe deck mode: show Like/Pass buttons */
   onLike?: () => void;
   onPass?: () => void;
-  /** Match list mode: show Mark as watched button */
-  onMarkWatched?: () => void;
-  isWatched?: boolean;
+  /** Match list mode: show Mark as visited button */
+  onMarkVisited?: () => void;
+  isVisited?: boolean;
 }
 
 export function CardDetail({
@@ -33,8 +22,8 @@ export function CardDetail({
   onClose,
   onLike,
   onPass,
-  onMarkWatched,
-  isWatched,
+  onMarkVisited,
+  isVisited,
 }: CardDetailProps) {
   const handleDragEnd = useCallback(
     (_: unknown, info: PanInfo) => {
@@ -49,12 +38,13 @@ export function CardDetail({
     onClose();
   }, [onClose]);
 
-  const trailerQuery = card
-    ? encodeURIComponent(`${card.title} ${card.release_year} official trailer`)
-    : '';
-
   const isSwipeMode = !!(onLike && onPass);
-  const isMatchMode = !!onMarkWatched;
+  const isMatchMode = !!onMarkVisited;
+
+  const mapsHref = card
+    ? card.maps_url ??
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${card.name} ${card.address}`)}`
+    : '#';
 
   return (
     <AnimatePresence>
@@ -83,110 +73,116 @@ export function CardDetail({
 
             <div className="card-detail__scroll">
               <div className="card-detail__hero">
-                {card.poster_path ? (
+                {card.photo_url ? (
                   <img
                     className="card-detail__poster"
-                    src={`${TMDB_IMAGE_BASE}/w500${card.poster_path}`}
-                    alt={card.title}
+                    src={card.photo_url}
+                    alt={card.name}
                     draggable={false}
                   />
                 ) : (
                   <div className="card-detail__poster card-detail__poster--empty">
-                    No Image
+                    No Photo
                   </div>
                 )}
               </div>
 
               <div className="card-detail__body">
-                <h2 className="card-detail__title">{card.title}</h2>
+                <h2 className="card-detail__title">{card.name}</h2>
 
                 <div className="card-detail__meta">
-                  <span className="card-detail__year">{card.release_year}</span>
                   <span className="card-detail__rating">
                     <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
                       <path d="M10 1l2.39 4.84L17.3 6.7l-3.65 3.56.86 5.03L10 13.01l-4.51 2.28.86-5.03L2.7 6.7l4.91-.86L10 1z" />
                     </svg>
                     {card.rating.toFixed(1)}
+                    {card.rating_count > 0 && (
+                      <span className="card-detail__rating-count">
+                        ({card.rating_count.toLocaleString()})
+                      </span>
+                    )}
                   </span>
-                  {card.media_type === 'movie' && card.runtime && (
-                    <span className="card-detail__runtime">
-                      {Math.floor(card.runtime / 60)}h {card.runtime % 60}m
-                    </span>
+                  {card.price_level != null && (
+                    <span className="card-detail__price">{priceLabel(card.price_level)}</span>
                   )}
-                  {card.media_type === 'tv' && card.seasons_count && (
-                    <span className="card-detail__seasons">
-                      {card.seasons_count} season{card.seasons_count !== 1 ? 's' : ''}
-                      {card.episodes_count ? ` (${card.episodes_count} ep)` : ''}
+                  {card.distance_mi !== null && (
+                    <span className="card-detail__distance">{card.distance_mi.toFixed(1)} mi</span>
+                  )}
+                  {card.open_now !== undefined && (
+                    <span
+                      className={`card-detail__open ${card.open_now ? 'card-detail__open--yes' : 'card-detail__open--no'}`}
+                    >
+                      {card.open_now ? 'Open now' : 'Closed'}
                     </span>
                   )}
                 </div>
 
                 <div className="card-detail__genres">
-                  {card.genre_names.map((genre) => (
-                    <span key={genre} className="card-detail__genre-tag">{genre}</span>
+                  {card.cuisines.map((cuisine) => (
+                    <span key={cuisine} className="card-detail__genre-tag">{cuisine}</span>
                   ))}
                 </div>
 
-                {card.director && (
-                  <div className="card-detail__director">
-                    <span className="card-detail__label">Directed by</span>
-                    <span className="card-detail__director-name">{card.director}</span>
+                {card.description && (
+                  <p className="card-detail__overview">{card.description}</p>
+                )}
+
+                <div className="card-detail__address">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  <span>{card.address}</span>
+                </div>
+
+                {card.hours && card.hours.length > 0 && (
+                  <div className="card-detail__hours">
+                    <h3 className="card-detail__section-title">Hours</h3>
+                    <ul className="card-detail__hours-list">
+                      {card.hours.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
                   </div>
                 )}
 
-                <p className="card-detail__overview">{card.overview}</p>
-
-                {card.cast && card.cast.length > 0 && (
-                  <div className="card-detail__cast">
-                    <h3 className="card-detail__section-title">Cast</h3>
-                    <div className="card-detail__cast-list">
-                      {card.cast.slice(0, 6).map((member) => (
-                        <div key={member.name} className="card-detail__cast-member">
-                          <div className="card-detail__cast-avatar">
-                            {member.profile_path ? (
-                              <img
-                                src={`${TMDB_IMAGE_BASE}/w185${member.profile_path}`}
-                                alt={member.name}
-                              />
-                            ) : (
-                              <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                              </svg>
-                            )}
-                          </div>
-                          <div className="card-detail__cast-info">
-                            <span className="card-detail__cast-name">{member.name}</span>
-                            <span className="card-detail__cast-character">{member.character}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {card.streaming_services && card.streaming_services.length > 0 && (
-                  <div className="card-detail__streaming">
-                    <h3 className="card-detail__section-title">Where to Watch</h3>
-                    <div className="card-detail__service-list">
-                      {card.streaming_services.map((s) => (
-                        <span key={s} className="card-detail__service-tag">
-                          {STREAMING_LABELS[s] || s}
-                        </span>
-                      ))}
-                    </div>
+                {(card.phone || card.website) && (
+                  <div className="card-detail__contact">
+                    {card.phone && (
+                      <a className="card-detail__contact-link" href={`tel:${card.phone.replace(/[^+\d]/g, '')}`}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />
+                        </svg>
+                        {card.phone}
+                      </a>
+                    )}
+                    {card.website && (
+                      <a
+                        className="card-detail__contact-link"
+                        href={card.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                          <circle cx="12" cy="12" r="10" />
+                          <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+                        </svg>
+                        Website
+                      </a>
+                    )}
                   </div>
                 )}
 
                 <a
                   className="card-detail__trailer"
-                  href={`https://www.youtube.com/results?search_query=${trailerQuery}`}
+                  href={mapsHref}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-                    <path d="M8 5v14l11-7z" />
+                    <path d="M21.71 11.29l-9-9a1 1 0 00-1.42 0l-9 9a1 1 0 000 1.42l9 9a1 1 0 001.42 0l9-9a1 1 0 000-1.42zM14 14.5V12h-4v3H8v-4a1 1 0 011-1h5V7.5l3.5 3.5z" />
                   </svg>
-                  Watch Trailer
+                  Directions
                 </a>
               </div>
 
@@ -220,16 +216,16 @@ export function CardDetail({
               {isMatchMode && (
                 <div className="card-detail__actions">
                   <button
-                    className={`card-detail__action-btn card-detail__action-btn--watched ${isWatched ? 'card-detail__action-btn--done' : ''}`}
-                    onClick={isWatched ? undefined : onMarkWatched}
+                    className={`card-detail__action-btn card-detail__action-btn--watched ${isVisited ? 'card-detail__action-btn--done' : ''}`}
+                    onClick={isVisited ? undefined : onMarkVisited}
                     type="button"
-                    aria-label={isWatched ? 'Already watched' : 'Mark as watched'}
-                    disabled={isWatched}
+                    aria-label={isVisited ? 'Already visited' : 'Mark as visited'}
+                    disabled={isVisited}
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="24" height="24">
                       <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    {isWatched ? 'Watched' : 'Mark as Watched'}
+                    {isVisited ? 'Visited' : 'Mark as Visited'}
                   </button>
                 </div>
               )}

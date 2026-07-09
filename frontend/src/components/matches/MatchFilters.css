@@ -50,7 +50,7 @@
 .match-filters__chip--active {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--color-bg);
 }
 
 .match-filters__chip--active:hover {

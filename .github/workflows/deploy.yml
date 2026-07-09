@@ -1,0 +1,131 @@
+name: Deploy Forkd
+
+# Manual trigger only — safe to leave in the repo before AWS is set up.
+# Run from GitHub's mobile app or the Actions tab on github.com:
+# Actions -> Deploy Forkd -> Run workflow -> pick backend/frontend/both.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: What to deploy
+        type: choice
+        options: [both, backend, frontend]
+        default: both
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-backend:
+    if: ${{ inputs.target == 'both' || inputs.target == 'backend' }}
+    runs-on: ubuntu-latest
+    outputs:
+      api-url: ${{ steps.outputs.outputs.api-url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install backend test dependencies
+        run: pip install pytest moto boto3
+
+      - name: Run backend tests
+        working-directory: backend
+        run: python -m pytest tests/ -q
+
+      - name: Install SAM CLI
+        uses: aws-actions/setup-sam@v2
+
+      - name: sam build
+        working-directory: backend
+        run: sam build
+
+      - name: sam deploy
+        working-directory: backend
+        run: |
+          sam deploy \
+            --stack-name forkd \
+            --resolve-s3 \
+            --capabilities CAPABILITY_IAM \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset
+
+      - name: Read stack outputs
+        id: outputs
+        run: |
+          API_URL=$(aws cloudformation describe-stacks --stack-name forkd \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
+          echo "api-url=$API_URL" >> "$GITHUB_OUTPUT"
+
+  deploy-frontend:
+    if: ${{ always() && !failure() && !cancelled() && (inputs.target == 'both' || inputs.target == 'frontend') }}
+    needs: deploy-backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Resolve API URL
+        id: api
+        run: |
+          # Reuse the URL from the backend job if it ran this same workflow;
+          # otherwise read it straight from the already-deployed stack.
+          URL="${{ needs.deploy-backend.outputs.api-url }}"
+          if [ -z "$URL" ]; then
+            URL=$(aws cloudformation describe-stacks --stack-name forkd \
+              --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npx vitest run
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_API_URL: ${{ steps.api.outputs.url }}
+        run: npm run build
+
+      - name: Sync to S3
+        run: |
+          BUCKET=$(aws cloudformation describe-stacks --stack-name forkd \
+            --query "Stacks[0].Outputs[?OutputKey=='FrontendBucketName'].OutputValue" --output text)
+          aws s3 sync frontend/dist "s3://$BUCKET" --delete
+
+      - name: Invalidate CloudFront cache
+        run: |
+          DIST_ID=$(aws cloudformation describe-stacks --stack-name forkd \
+            --query "Stacks[0].Outputs[?OutputKey=='FrontendDistributionId'].OutputValue" --output text)
+          aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
+
+      - name: Print live URL
+        run: |
+          aws cloudformation describe-stacks --stack-name forkd \
+            --query "Stacks[0].Outputs[?OutputKey=='FrontendUrl'].OutputValue" --output text

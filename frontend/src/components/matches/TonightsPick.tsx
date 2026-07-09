@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
-import { TMDB_IMAGE_BASE } from '../../utils/constants';
+import { priceLabel } from '../../utils/constants';
 import type { Match } from '../../types/match';
 import './TonightsPick.css';
 
@@ -10,21 +10,10 @@ interface TonightsPickProps {
   isOpen: boolean;
   onClose: () => void;
   onPick: () => Promise<Match | null>;
-  onWatched: (tmdbId: number) => void;
+  onVisited: (placeId: string) => void;
 }
 
-const MOCK_SERVICES: Record<string, string> = {
-  netflix: 'Netflix',
-  hulu: 'Hulu',
-  disney_plus: 'Disney+',
-  hbo_max: 'HBO Max',
-  amazon_prime: 'Prime',
-  apple_tv: 'Apple TV+',
-  peacock: 'Peacock',
-  paramount_plus: 'Paramount+',
-};
-
-export function TonightsPick({ isOpen, onClose, onPick, onWatched }: TonightsPickProps) {
+export function TonightsPick({ isOpen, onClose, onPick, onVisited }: TonightsPickProps) {
   const [pick, setPick] = useState<Match | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [revealed, setRevealed] = useState(false);
@@ -54,14 +43,14 @@ export function TonightsPick({ isOpen, onClose, onPick, onWatched }: TonightsPic
     fetchPick();
   }, [fetchPick]);
 
-  const handleWatchThis = useCallback(() => {
+  const handleEatHere = useCallback(() => {
     if (pick) {
-      onWatched(pick.tmdb_id);
+      onVisited(pick.place_id);
       setPick(null);
       setRevealed(false);
       onClose();
     }
-  }, [pick, onWatched, onClose]);
+  }, [pick, onVisited, onClose]);
 
   const handleDismiss = useCallback(() => {
     setPick(null);
@@ -75,6 +64,11 @@ export function TonightsPick({ isOpen, onClose, onPick, onWatched }: TonightsPic
       handleOpen();
     }
   }, [isOpen, pick, isLoading, handleOpen]);
+
+  const mapsHref = pick
+    ? pick.maps_url ??
+      `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pick.name} ${pick.address}`)}`
+    : '#';
 
   return (
     <AnimatePresence>
@@ -99,14 +93,14 @@ export function TonightsPick({ isOpen, onClose, onPick, onWatched }: TonightsPic
             {isLoading && (
               <div className="tonights-pick__loading">
                 <Spinner size="lg" />
-                <p className="tonights-pick__loading-text">Finding something great...</p>
+                <p className="tonights-pick__loading-text">Finding somewhere delicious...</p>
               </div>
             )}
 
             {!isLoading && !pick && (
               <div className="tonights-pick__empty">
-                <p>No unwatched matches available.</p>
-                <p className="tonights-pick__empty-sub">Keep swiping to build your match list!</p>
+                <p>No unvisited matches available.</p>
+                <p className="tonights-pick__empty-sub">Keep swiping to build your list of places to try!</p>
                 <Button variant="secondary" onClick={handleDismiss}>
                   Close
                 </Button>
@@ -123,49 +117,49 @@ export function TonightsPick({ isOpen, onClose, onPick, onWatched }: TonightsPic
                   exit={{ rotateY: -90, opacity: 0 }}
                   transition={{ type: 'spring', damping: 15, stiffness: 200 }}
                 >
-                  {pick.poster_path && (
+                  {pick.photo_url && (
                     <img
                       className="tonights-pick__poster"
-                      src={`${TMDB_IMAGE_BASE}/w500${pick.poster_path}`}
-                      alt={pick.title}
+                      src={pick.photo_url}
+                      alt={pick.name}
                     />
                   )}
 
-                  <h3 className="tonights-pick__title">{pick.title}</h3>
+                  <h3 className="tonights-pick__title">{pick.name}</h3>
 
                   <div className="tonights-pick__meta">
-                    <span>{pick.release_year}</span>
                     <span className="tonights-pick__rating">
                       <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
                         <path d="M10 1l2.39 4.84L17.3 6.7l-3.65 3.56.86 5.03L10 13.01l-4.51 2.28.86-5.03L2.7 6.7l4.91-.86L10 1z" />
                       </svg>
                       {pick.rating.toFixed(1)}
                     </span>
+                    {pick.price_level != null && <span>{priceLabel(pick.price_level)}</span>}
+                    {pick.distance_mi !== null && <span>{pick.distance_mi.toFixed(1)} mi</span>}
                   </div>
 
                   <div className="tonights-pick__genres">
-                    {pick.genre_names.map((genre) => (
-                      <span key={genre} className="tonights-pick__genre-tag">{genre}</span>
+                    {pick.cuisines.map((cuisine) => (
+                      <span key={cuisine} className="tonights-pick__genre-tag">{cuisine}</span>
                     ))}
                   </div>
 
-                  {pick.streaming_services.length > 0 && (
-                    <div className="tonights-pick__services">
-                      {pick.streaming_services.map((s) => (
-                        <span key={s} className="tonights-pick__service-tag">
-                          {MOCK_SERVICES[s] || s}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <a
+                    className="tonights-pick__directions"
+                    href={mapsHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {pick.address}
+                  </a>
                 </motion.div>
               </AnimatePresence>
             )}
 
             {!isLoading && pick && (
               <div className="tonights-pick__actions">
-                <Button onClick={handleWatchThis} fullWidth>
-                  Let's watch this!
+                <Button onClick={handleEatHere} fullWidth>
+                  Let's eat here!
                 </Button>
                 <Button variant="secondary" onClick={handleReroll} fullWidth>
                   Re-roll

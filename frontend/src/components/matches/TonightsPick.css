@@ -138,3 +138,15 @@
   gap: 0.5rem;
   width: 100%;
 }
+
+.tonights-pick__directions {
+  display: block;
+  color: var(--color-accent);
+  text-decoration: none;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

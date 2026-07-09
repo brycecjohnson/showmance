@@ -1,16 +1,16 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Showmance - Couples movie/show matching PWA backend
+Description: Forkd - Couples restaurant matching PWA backend
 
 Globals:
   Function:
-    Runtime: python3.9
+    Runtime: python3.12
     MemorySize: 128
     Timeout: 10
     Environment:
       Variables:
-        TABLE_NAME: !Ref ShowmanceTable
-        TMDB_API_KEY: '{{resolve:ssm:/showmance/tmdb-api-key}}'
+        TABLE_NAME: !Ref ForkdTable
+        GOOGLE_API_KEY: '{{resolve:ssm:/forkd/google-api-key}}'
     Layers:
       - !Ref SharedLayer
 
@@ -42,14 +42,14 @@ Resources:
                   - dynamodb:Query
                   - dynamodb:Scan
                 Resource:
-                  - !GetAtt ShowmanceTable.Arn
-                  - !Sub "${ShowmanceTable.Arn}/index/*"
+                  - !GetAtt ForkdTable.Arn
+                  - !Sub "${ForkdTable.Arn}/index/*"
 
   # --- DynamoDB ---
-  ShowmanceTable:
+  ForkdTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: showmance
+      TableName: forkd
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: PK
@@ -82,16 +82,16 @@ Resources:
   SharedLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: showmance-shared
-      Description: Shared utilities for Showmance Lambdas
+      LayerName: forkd-shared
+      Description: Shared utilities for Forkd Lambdas
       ContentUri: layers/shared/
       CompatibleRuntimes:
-        - python3.9
+        - python3.12
     Metadata:
-      BuildMethod: python3.9
+      BuildMethod: python3.12
 
   # --- API Gateway ---
-  ShowmanceApi:
+  ForkdApi:
     Type: AWS::Serverless::HttpApi
     Properties:
       StageName: $default
@@ -102,6 +102,7 @@ Resources:
           - GET
           - POST
           - PATCH
+          - PUT
           - OPTIONS
         AllowHeaders:
           - Content-Type
@@ -112,7 +113,7 @@ Resources:
   CreateRoomFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: showmance-create-room
+      FunctionName: forkd-create-room
       Handler: app.handler
       CodeUri: functions/create_room/
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -120,14 +121,14 @@ Resources:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref ShowmanceApi
+            ApiId: !Ref ForkdApi
             Path: /rooms
             Method: POST
 
   JoinRoomFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: showmance-join-room
+      FunctionName: forkd-join-room
       Handler: app.handler
       CodeUri: functions/join_room/
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -135,14 +136,14 @@ Resources:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref ShowmanceApi
+            ApiId: !Ref ForkdApi
             Path: /rooms/{code}/join
             Method: POST
 
   GetRoomFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: showmance-get-room
+      FunctionName: forkd-get-room
       Handler: app.handler
       CodeUri: functions/get_room/
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -150,14 +151,29 @@ Resources:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref ShowmanceApi
+            ApiId: !Ref ForkdApi
             Path: /rooms/{code}
             Method: GET
+
+  SetLocationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: forkd-set-location
+      Handler: app.handler
+      CodeUri: functions/set_location/
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ForkdApi
+            Path: /rooms/{code}/location
+            Method: PUT
 
   SavePreferencesFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: showmance-save-preferences
+      FunctionName: forkd-save-preferences
       Handler: app.handler
       CodeUri: functions/save_preferences/
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -165,30 +181,30 @@ Resources:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref ShowmanceApi
+            ApiId: !Ref ForkdApi
             Path: /rooms/{code}/preferences
             Method: POST
 
   GetCardsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: showmance-get-cards
+      FunctionName: forkd-get-cards
       Handler: app.handler
       CodeUri: functions/get_cards/
-      Timeout: 15
+      Timeout: 20
       Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref ShowmanceApi
+            ApiId: !Ref ForkdApi
             Path: /cards/{code}
             Method: GET
 
   RecordSwipeFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: showmance-record-swipe
+      FunctionName: forkd-record-swipe
       Handler: app.handler
       CodeUri: functions/record_swipe/
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -196,29 +212,30 @@ Resources:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref ShowmanceApi
+            ApiId: !Ref ForkdApi
             Path: /swipe
             Method: POST
 
   GetMatchesFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: showmance-get-matches
+      FunctionName: forkd-get-matches
       Handler: app.handler
       CodeUri: functions/get_matches/
+      Timeout: 15
       Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref ShowmanceApi
+            ApiId: !Ref ForkdApi
             Path: /matches/{code}
             Method: GET
 
   UpdateMatchFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: showmance-update-match
+      FunctionName: forkd-update-match
       Handler: app.handler
       CodeUri: functions/update_match/
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -226,14 +243,14 @@ Resources:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref ShowmanceApi
-            Path: /matches/{code}/{tmdb_id}
+            ApiId: !Ref ForkdApi
+            Path: /matches/{code}/{place_id}
             Method: PATCH
 
   TonightsPickFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: showmance-tonights-pick
+      FunctionName: forkd-tonights-pick
       Handler: app.handler
       CodeUri: functions/tonights_pick/
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -241,14 +258,91 @@ Resources:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref ShowmanceApi
+            ApiId: !Ref ForkdApi
             Path: /tonight/{code}
             Method: GET
+
+  # --- Frontend Hosting: private S3 bucket behind CloudFront (OAC) ---
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "forkd-frontend-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${FrontendBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}"
+
+  FrontendOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "forkd-frontend-oac-${AWS::AccountId}"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  FrontendDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+        # SPA routing: unknown paths (deep links to /swipe, /matches, etc.)
+        # fall back to index.html and let react-router handle them client-side
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+        Origins:
+          - Id: FrontendOrigin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt FrontendOriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: FrontendOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          # Managed-CachingOptimized
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
 
 Outputs:
   ApiUrl:
     Description: API Gateway URL
-    Value: !Sub "https://${ShowmanceApi}.execute-api.${AWS::Region}.amazonaws.com"
+    Value: !Sub "https://${ForkdApi}.execute-api.${AWS::Region}.amazonaws.com"
   TableName:
     Description: DynamoDB table name
-    Value: !Ref ShowmanceTable
+    Value: !Ref ForkdTable
+  FrontendBucketName:
+    Description: S3 bucket for the built frontend (aws s3 sync target)
+    Value: !Ref FrontendBucket
+  FrontendUrl:
+    Description: Public CloudFront URL for the PWA
+    Value: !Sub "https://${FrontendDistribution.DomainName}"
+  FrontendDistributionId:
+    Description: CloudFront distribution id (for cache invalidation on deploy)
+    Value: !Ref FrontendDistribution

@@ -1,38 +1,32 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SwipeCard } from './SwipeCard';
 import { useCards } from '../../hooks/useCards';
-import { useModeContext } from '../../context/ModeContext';
-import type { Card } from '../../types/card';
+import type { RestaurantCard } from '../../types/card';
 import type { SwipeDirection } from '../../types/swipe';
 import './CardStack.css';
 
 const VISIBLE_CARDS = 3;
 
 interface CardStackProps {
-  onSwipe: (tmdbId: number, direction: SwipeDirection, card: Card) => void;
+  onSwipe: (placeId: string, direction: SwipeDirection, card: RestaurantCard) => void;
   triggerRef: React.MutableRefObject<((dir: 'left' | 'right') => void) | null>;
-  onCardTap?: (card: Card) => void;
+  onCardTap?: (card: RestaurantCard) => void;
   onError?: (message: string) => void;
 }
 
 export function CardStack({ onSwipe, triggerRef, onCardTap, onError }: CardStackProps) {
+  const navigate = useNavigate();
   const { cards, isLoading, hasMore, fetchCards, removeTopCard } = useCards();
-  const { mode } = useModeContext();
   const hasFetched = useRef(false);
   const [fetchError, setFetchError] = useState(false);
-
-  // Reset hasFetched when mode changes so initial fetch re-triggers
-  useEffect(() => {
-    hasFetched.current = false;
-    setFetchError(false);
-  }, [mode]);
 
   useEffect(() => {
     if (!hasFetched.current) {
       hasFetched.current = true;
       fetchCards().catch(() => {
         setFetchError(true);
-        onError?.('Failed to load cards. Check your connection.');
+        onError?.('Failed to load restaurants. Check your connection.');
       });
     }
   }, [fetchCards, onError]);
@@ -41,7 +35,7 @@ export function CardStack({ onSwipe, triggerRef, onCardTap, onError }: CardStack
     setFetchError(false);
     fetchCards().catch(() => {
       setFetchError(true);
-      onError?.('Still unable to load cards. Try again later.');
+      onError?.('Still unable to load restaurants. Try again later.');
     });
   }, [fetchCards, onError]);
 
@@ -50,7 +44,7 @@ export function CardStack({ onSwipe, triggerRef, onCardTap, onError }: CardStack
       const topCard = cards[0];
       if (!topCard) return;
       removeTopCard();
-      onSwipe(topCard.tmdb_id, direction, topCard);
+      onSwipe(topCard.place_id, direction, topCard);
     },
     [cards, removeTopCard, onSwipe],
   );
@@ -107,10 +101,17 @@ export function CardStack({ onSwipe, triggerRef, onCardTap, onError }: CardStack
   if (cards.length === 0 && !hasMore) {
     return (
       <div className="card-stack card-stack--empty">
-        <p className="card-stack__empty-title">All caught up!</p>
+        <p className="card-stack__empty-title">You've seen every spot nearby!</p>
         <p className="card-stack__empty-subtitle">
-          Check back later for more titles to swipe.
+          Widen your search radius to discover more places.
         </p>
+        <button
+          className="card-stack__retry-btn"
+          onClick={() => navigate('/settings')}
+          type="button"
+        >
+          Widen radius
+        </button>
       </div>
     );
   }
@@ -121,7 +122,7 @@ export function CardStack({ onSwipe, triggerRef, onCardTap, onError }: CardStack
     <div className="card-stack">
       {visibleCards.map((card, index) => (
         <SwipeCard
-          key={card.tmdb_id}
+          key={card.place_id}
           card={card}
           onSwipe={handleSwipe}
           isTop={index === 0}

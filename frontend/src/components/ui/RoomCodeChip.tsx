@@ -20,8 +20,8 @@ export function RoomCodeChip() {
   const handleShare = useCallback(async () => {
     if (!roomCode) return;
     const shareData = {
-      title: 'Showmance',
-      text: `Join my Showmance room: ${roomCode}`,
+      title: 'Forkd',
+      text: `Join my Forkd room: ${roomCode}`,
     };
     try {
       if (navigator.share) {

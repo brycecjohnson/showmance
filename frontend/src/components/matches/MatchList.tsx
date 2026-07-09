@@ -1,59 +1,49 @@
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { useModeContext } from '../../context/ModeContext';
-import { useMatches } from '../../hooks/useMatches';
 import { MatchItem } from './MatchItem';
 import { MatchFilters, type SortOption } from './MatchFilters';
 import { CardDetail } from '../cards/CardDetail';
-import type { Card } from '../../types/card';
+import type { RestaurantCard } from '../../types/card';
 import type { Match } from '../../types/match';
+import { Toast } from '../ui/Toast';
+import { useToast } from '../../hooks/useToast';
 import './MatchList.css';
 
 interface MatchListProps {
-  onMatchCount?: (count: number) => void;
+  matches: Match[];
+  isLoading: boolean;
+  onMarkVisited: (placeId: string) => Promise<void>;
 }
 
-export function MatchList({ onMatchCount }: MatchListProps) {
-  const { mode } = useModeContext();
-  const { matches, isLoading, fetchMatches, markWatched } = useMatches();
-
-  const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
-  const [selectedService, setSelectedService] = useState<string | null>(null);
+export function MatchList({ matches, isLoading, onMarkVisited }: MatchListProps) {
+  const [selectedCuisine, setSelectedCuisine] = useState<string | null>(null);
+  const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('matched_at');
-  const [showWatched, setShowWatched] = useState(false);
+  const [showVisited, setShowVisited] = useState(false);
   const [detailMatch, setDetailMatch] = useState<Match | null>(null);
-
-  useEffect(() => {
-    fetchMatches();
-  }, [fetchMatches]);
-
-  // Reset filters on mode change
-  useEffect(() => {
-    setSelectedGenre(null);
-    setSelectedService(null);
-  }, [mode]);
+  const { toast, showToast, clearToast } = useToast();
 
   const filtered = useMemo(() => {
     let result = matches;
 
-    if (!showWatched) {
-      result = result.filter((m) => !m.watched);
+    if (!showVisited) {
+      result = result.filter((m) => !m.visited);
     }
 
-    if (selectedGenre) {
-      result = result.filter((m) => m.genre_names.includes(selectedGenre));
+    if (selectedCuisine) {
+      result = result.filter((m) => m.cuisines.includes(selectedCuisine));
     }
 
-    if (selectedService) {
-      result = result.filter((m) => m.streaming_services.includes(selectedService));
+    if (selectedPrice) {
+      result = result.filter((m) => m.price_level === selectedPrice);
     }
 
     result = [...result].sort((a, b) => {
       switch (sortBy) {
         case 'rating':
           return b.rating - a.rating;
-        case 'release_year':
-          return b.release_year - a.release_year;
+        case 'distance':
+          return (a.distance_mi ?? Infinity) - (b.distance_mi ?? Infinity);
         case 'matched_at':
         default:
           return new Date(b.matched_at).getTime() - new Date(a.matched_at).getTime();
@@ -61,22 +51,20 @@ export function MatchList({ onMatchCount }: MatchListProps) {
     });
 
     return result;
-  }, [matches, showWatched, selectedGenre, selectedService, sortBy]);
+  }, [matches, showVisited, selectedCuisine, selectedPrice, sortBy]);
 
-  const unwatchedCount = useMemo(
-    () => matches.filter((m) => !m.watched).length,
+  const unvisitedCount = useMemo(
+    () => matches.filter((m) => !m.visited).length,
     [matches],
   );
 
-  useEffect(() => {
-    onMatchCount?.(unwatchedCount);
-  }, [unwatchedCount, onMatchCount]);
-
-  const handleMarkWatched = useCallback(
-    (tmdbId: number) => {
-      markWatched(tmdbId);
+  const handleMarkVisited = useCallback(
+    (placeId: string) => {
+      onMarkVisited(placeId).catch(() => {
+        showToast("Couldn't update — check your connection and try again.");
+      });
     },
-    [markWatched],
+    [onMarkVisited, showToast],
   );
 
   const handleMatchTap = useCallback((match: Match) => {
@@ -87,26 +75,27 @@ export function MatchList({ onMatchCount }: MatchListProps) {
     setDetailMatch(null);
   }, []);
 
-  const handleDetailMarkWatched = useCallback(() => {
+  const handleDetailMarkVisited = useCallback(() => {
     if (detailMatch) {
-      markWatched(detailMatch.tmdb_id);
+      onMarkVisited(detailMatch.place_id).catch(() => {
+        showToast("Couldn't update — check your connection and try again.");
+      });
       setDetailMatch(null);
     }
-  }, [detailMatch, markWatched]);
+  }, [detailMatch, onMarkVisited, showToast]);
 
-  const detailCard: Card | null = detailMatch
+  const detailCard: RestaurantCard | null = detailMatch
     ? {
-        tmdb_id: detailMatch.tmdb_id,
-        media_type: detailMatch.media_type,
-        title: detailMatch.title,
-        poster_path: detailMatch.poster_path,
-        backdrop_path: null,
-        overview: '',
-        release_year: detailMatch.release_year,
+        place_id: detailMatch.place_id,
+        name: detailMatch.name,
+        photo_url: detailMatch.photo_url,
+        cuisines: detailMatch.cuisines,
         rating: detailMatch.rating,
-        genre_ids: [],
-        genre_names: detailMatch.genre_names,
-        streaming_services: detailMatch.streaming_services,
+        rating_count: 0,
+        price_level: detailMatch.price_level,
+        address: detailMatch.address,
+        distance_mi: detailMatch.distance_mi,
+        maps_url: detailMatch.maps_url,
       }
     : null;
 
@@ -135,26 +124,26 @@ export function MatchList({ onMatchCount }: MatchListProps) {
     );
   }
 
-  const allWatched = unwatchedCount === 0 && !showWatched;
+  const allVisited = unvisitedCount === 0 && !showVisited;
 
   return (
     <div className="match-list">
       <MatchFilters
         matches={matches}
-        selectedGenre={selectedGenre}
-        selectedService={selectedService}
+        selectedCuisine={selectedCuisine}
+        selectedPrice={selectedPrice}
         sortBy={sortBy}
-        showWatched={showWatched}
-        onGenreChange={setSelectedGenre}
-        onServiceChange={setSelectedService}
+        showVisited={showVisited}
+        onCuisineChange={setSelectedCuisine}
+        onPriceChange={setSelectedPrice}
         onSortChange={setSortBy}
-        onShowWatchedChange={setShowWatched}
+        onShowVisitedChange={setShowVisited}
       />
 
-      {allWatched ? (
+      {allVisited ? (
         <div className="match-list__empty">
-          <p className="match-list__empty-text">All caught up!</p>
-          <p className="match-list__empty-sub">Toggle "Show watched" to see your history.</p>
+          <p className="match-list__empty-text">You've been everywhere on your list!</p>
+          <p className="match-list__empty-sub">Toggle "Show visited" to see your history.</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="match-list__empty">
@@ -165,9 +154,9 @@ export function MatchList({ onMatchCount }: MatchListProps) {
           <AnimatePresence mode="popLayout">
             {filtered.map((match) => (
               <MatchItem
-                key={match.tmdb_id}
+                key={match.place_id}
                 match={match}
-                onMarkWatched={handleMarkWatched}
+                onMarkVisited={handleMarkVisited}
                 onTap={handleMatchTap}
               />
             ))}
@@ -179,9 +168,13 @@ export function MatchList({ onMatchCount }: MatchListProps) {
         card={detailCard}
         isOpen={detailMatch !== null}
         onClose={handleDetailClose}
-        onMarkWatched={handleDetailMarkWatched}
-        isWatched={detailMatch?.watched}
+        onMarkVisited={handleDetailMarkVisited}
+        isVisited={detailMatch?.visited}
       />
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={clearToast} />
+      )}
     </div>
   );
 }
