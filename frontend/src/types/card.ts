@@ -17,17 +17,3 @@ export interface RestaurantCard {
   hours?: string[];
   maps_url?: string;
 }
-
-export interface CuisineCard {
-  id: string;
-  name: string;
-  emoji: string;
-  color: string;
-}
-
-export interface CardDeck {
-  cards: RestaurantCard[];
-  currentIndex: number;
-  isLoading: boolean;
-  hasMore: boolean;
-}

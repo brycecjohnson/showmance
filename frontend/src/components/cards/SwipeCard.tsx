@@ -153,7 +153,7 @@ export function SwipeCard({ card, onSwipe, isTop, stackIndex, onTap, triggerRef 
             </svg>
             {card.rating.toFixed(1)}
           </span>
-          {card.price_level && (
+          {card.price_level != null && (
             <span className="swipe-card__price">{priceLabel(card.price_level)}</span>
           )}
           {card.distance_mi !== null && (

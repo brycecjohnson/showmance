@@ -67,6 +67,25 @@ def test_solo_right_swipe_auto_matches(table):
     assert resp["matched"] is True
 
 
+def test_couples_room_does_not_auto_match_before_partner_joins(table):
+    # A couples room (is_solo=False) where only the creator has joined yet
+    # (member_count == 1) must NOT behave like a solo room — there's no
+    # partner to mutually agree with.
+    create = load_handler("create_room")
+    data = body_of(create(make_event(body={}), None))
+    code, member_a = data["room_code"], data["partner_id"]
+
+    resp = body_of(swipe(code, member_a, "place-lonely", "right"))
+    assert resp["matched"] is False
+    assert "match" not in resp
+
+    # Once the partner joins and also swipes right, it matches normally
+    join = load_handler("join_room")
+    member_b = body_of(join(make_event(path_params={"code": code}), None))["partner_id"]
+    resp = body_of(swipe(code, member_b, "place-lonely", "right"))
+    assert resp["matched"] is True
+
+
 def test_swiped_set_accumulates(room, table):
     code, member_a, _b = room
 

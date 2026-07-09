@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RoomCodeChip } from '../components/ui/RoomCodeChip';
 import { MatchList } from '../components/matches/MatchList';
@@ -7,25 +7,35 @@ import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { useRoomContext } from '../context/RoomContext';
 import { useMatches } from '../hooks/useMatches';
+import { setLastSeenMatches } from '../utils/storage';
 import './MatchesPage.css';
 
 export function MatchesPage() {
   const navigate = useNavigate();
-  const [matchCount, setMatchCount] = useState(0);
   const [showPick, setShowPick] = useState(false);
   const { isSolo } = useRoomContext();
-  const { pickTonight, markVisited } = useMatches();
+  // Single source of truth for this screen: MatchList, the unvisited-count
+  // badge, and Tonight's Pick all read/act on the same matches state, so a
+  // markVisited from any of them is immediately reflected everywhere else
+  // (previously each owned a separate useMatches() and could go stale).
+  const { matches, isLoading, fetchMatches, markVisited, pickTonight } = useMatches();
 
-  const handleMatchCount = useCallback((count: number) => {
-    setMatchCount(count);
-  }, []);
+  useEffect(() => {
+    // Opening this screen clears the "new match" badge on the bottom nav.
+    fetchMatches().then(() => setLastSeenMatches(new Date().toISOString()));
+  }, [fetchMatches]);
+
+  const unvisitedCount = useMemo(
+    () => matches.filter((m) => !m.visited).length,
+    [matches],
+  );
 
   return (
     <div className="matches-page">
       <header className="matches-page__header">
         <div className="matches-page__title-row">
           <h1 className="matches-page__title">{isSolo ? 'Your Picks' : 'Places to Try'}</h1>
-          <Badge count={matchCount} />
+          <Badge count={unvisitedCount} />
         </div>
         <div className="matches-page__controls">
           <RoomCodeChip />
@@ -57,7 +67,7 @@ export function MatchesPage() {
         </Button>
       </div>
 
-      <MatchList onMatchCount={handleMatchCount} />
+      <MatchList matches={matches} isLoading={isLoading} onMarkVisited={markVisited} />
 
       <TonightsPick
         isOpen={showPick}

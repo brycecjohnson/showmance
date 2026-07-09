@@ -52,7 +52,7 @@ Read it before making any architectural decisions.
 - Min 44px touch targets
 - Mobile-first, desktop fallback (arrow keys + buttons for swiping)
 
-## DynamoDB Schema (Single Table: `showmance`)
+## DynamoDB Schema (Single Table: `forkd`)
 
 Keys: PK (String), SK (String). GSI1: GSI1PK, GSI1SK. TTL attribute: `ttl`.
 The old `{media_type}` key slot became the domain slot (`restaurant`).
@@ -76,7 +76,7 @@ GSI1 is for sorted match queries: `GSI1PK=ROOM#{code}#MATCHES#restaurant`,
   couples-first but the data model is group-ready (`members` map, match =
   all members swiped right)
 - Each Lambda function lives in `backend/functions/{name}/app.py` with a `handler(event, context)` entry point
-- Shared code goes in the SAM Lambda Layer at `backend/layers/shared/python/shared/`
+- Shared code goes in the SAM Lambda Layer at `backend/layers/shared/shared/`
 - All Lambda responses use the shared `response.py` helper (standardized JSON + CORS headers)
 - Google Places responses are cached in DynamoDB under geohash-bucketed keys
   with TTL auto-cleanup; place data caches max 30 days (ToS), `place_id` may

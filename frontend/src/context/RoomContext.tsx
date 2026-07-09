@@ -18,6 +18,9 @@ interface RoomContextValue {
   isSolo: boolean;
   isLoading: boolean;
   error: string | null;
+  /** Set when a dead room (404/403) forced the user back to the landing page. */
+  sessionEnded: boolean;
+  clearSessionEnded: () => void;
   createRoom: (solo?: boolean) => Promise<void>;
   joinRoom: (code: string) => Promise<void>;
   loadRoom: () => Promise<void>;
@@ -37,6 +40,9 @@ export function RoomProvider({ children }: { children: ReactNode }) {
   const [room, setRoom] = useState<Room | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionEnded, setSessionEnded] = useState(false);
+
+  const clearSessionEnded = useCallback(() => setSessionEnded(false), []);
 
   const loadRoom = useCallback(async () => {
     const code = storage.getRoomCode();
@@ -51,11 +57,11 @@ export function RoomProvider({ children }: { children: ReactNode }) {
       // (403). There's no recovering in place — clear the dead session so
       // ProtectedRoute bounces to the landing page instead of getting stuck.
       if (err instanceof ApiError && (err.status === 404 || err.status === 403)) {
-        storage.flagSessionEnded();
         storage.clearSession();
         setRoomCode(null);
         setPartnerId(null);
         setRoom(null);
+        setSessionEnded(true);
         return;
       }
       setError(err instanceof Error ? err.message : 'Failed to load room');
@@ -129,6 +135,8 @@ export function RoomProvider({ children }: { children: ReactNode }) {
         isSolo: room?.is_solo ?? false,
         isLoading,
         error,
+        sessionEnded,
+        clearSessionEnded,
         createRoom,
         joinRoom,
         loadRoom,

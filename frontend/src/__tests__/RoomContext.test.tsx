@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { RoomProvider, useRoomContext } from '../context/RoomContext';
 import { ApiError } from '../api/client';
@@ -18,13 +18,10 @@ vi.mock('../utils/storage', () => ({
   setPartnerId: (v: string) => { storageState.partnerId = v; },
   clearSession: () => { delete storageState.roomCode; delete storageState.partnerId; },
   setOnboardingComplete: vi.fn(),
-  flagSessionEnded: vi.fn(),
 }));
 
 import { getRoom } from '../api/rooms';
-import { flagSessionEnded } from '../utils/storage';
 const mockGetRoom = vi.mocked(getRoom);
-const mockFlagSessionEnded = vi.mocked(flagSessionEnded);
 
 function wrapper({ children }: { children: ReactNode }) {
   return createElement(RoomProvider, null, children);
@@ -48,7 +45,7 @@ describe('RoomContext fatal room errors', () => {
 
     expect(result.current.room).toBeNull();
     expect(result.current.partnerId).toBeNull();
-    expect(mockFlagSessionEnded).toHaveBeenCalledOnce();
+    expect(result.current.sessionEnded).toBe(true);
     expect(storageState.roomCode).toBeUndefined();
   });
 
@@ -60,7 +57,7 @@ describe('RoomContext fatal room errors', () => {
     await waitFor(() => {
       expect(result.current.roomCode).toBeNull();
     });
-    expect(mockFlagSessionEnded).toHaveBeenCalledOnce();
+    expect(result.current.sessionEnded).toBe(true);
   });
 
   it('keeps the session and surfaces a transient error on a 500', async () => {
@@ -74,7 +71,23 @@ describe('RoomContext fatal room errors', () => {
 
     // Session survives — this is a retry-later case, not a dead room
     expect(result.current.roomCode).toBe('EATS-TEST');
-    expect(mockFlagSessionEnded).not.toHaveBeenCalled();
+    expect(result.current.sessionEnded).toBe(false);
+  });
+
+  it('clearSessionEnded resets the flag', async () => {
+    mockGetRoom.mockRejectedValue(new ApiError(404, 'Room not found'));
+
+    const { result } = renderHook(() => useRoomContext(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.sessionEnded).toBe(true);
+    });
+
+    act(() => {
+      result.current.clearSessionEnded();
+    });
+
+    expect(result.current.sessionEnded).toBe(false);
   });
 
   it('loads normally on success', async () => {

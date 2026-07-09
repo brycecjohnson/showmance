@@ -1,34 +1,27 @@
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { useMatches } from '../../hooks/useMatches';
 import { MatchItem } from './MatchItem';
 import { MatchFilters, type SortOption } from './MatchFilters';
 import { CardDetail } from '../cards/CardDetail';
 import type { RestaurantCard } from '../../types/card';
 import type { Match } from '../../types/match';
-import { setLastSeenMatches } from '../../utils/storage';
 import { Toast } from '../ui/Toast';
 import { useToast } from '../../hooks/useToast';
 import './MatchList.css';
 
 interface MatchListProps {
-  onMatchCount?: (count: number) => void;
+  matches: Match[];
+  isLoading: boolean;
+  onMarkVisited: (placeId: string) => Promise<void>;
 }
 
-export function MatchList({ onMatchCount }: MatchListProps) {
-  const { matches, isLoading, fetchMatches, markVisited } = useMatches();
-
+export function MatchList({ matches, isLoading, onMarkVisited }: MatchListProps) {
   const [selectedCuisine, setSelectedCuisine] = useState<string | null>(null);
   const [selectedPrice, setSelectedPrice] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('matched_at');
   const [showVisited, setShowVisited] = useState(false);
   const [detailMatch, setDetailMatch] = useState<Match | null>(null);
   const { toast, showToast, clearToast } = useToast();
-
-  useEffect(() => {
-    // Opening the list clears the "new match" badge on the bottom nav.
-    fetchMatches().then(() => setLastSeenMatches(new Date().toISOString()));
-  }, [fetchMatches]);
 
   const filtered = useMemo(() => {
     let result = matches;
@@ -65,17 +58,13 @@ export function MatchList({ onMatchCount }: MatchListProps) {
     [matches],
   );
 
-  useEffect(() => {
-    onMatchCount?.(unvisitedCount);
-  }, [unvisitedCount, onMatchCount]);
-
   const handleMarkVisited = useCallback(
     (placeId: string) => {
-      markVisited(placeId).catch(() => {
+      onMarkVisited(placeId).catch(() => {
         showToast("Couldn't update — check your connection and try again.");
       });
     },
-    [markVisited, showToast],
+    [onMarkVisited, showToast],
   );
 
   const handleMatchTap = useCallback((match: Match) => {
@@ -88,12 +77,12 @@ export function MatchList({ onMatchCount }: MatchListProps) {
 
   const handleDetailMarkVisited = useCallback(() => {
     if (detailMatch) {
-      markVisited(detailMatch.place_id).catch(() => {
+      onMarkVisited(detailMatch.place_id).catch(() => {
         showToast("Couldn't update — check your connection and try again.");
       });
       setDetailMatch(null);
     }
-  }, [detailMatch, markVisited, showToast]);
+  }, [detailMatch, onMarkVisited, showToast]);
 
   const detailCard: RestaurantCard | null = detailMatch
     ? {

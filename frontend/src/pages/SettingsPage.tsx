@@ -11,6 +11,7 @@ import { savePreferences } from '../api/rooms';
 import type { SetLocationParams } from '../api/rooms';
 import { setOnboardingComplete } from '../utils/storage';
 import { metersToMiles } from '../utils/geo';
+import { priceLabel } from '../utils/constants';
 import './SettingsPage.css';
 
 type Section = 'none' | 'location' | 'budget';
@@ -102,7 +103,7 @@ export function SettingsPage() {
               <h2 className="settings-section__title">Budget</h2>
               <p className="settings-section__value">
                 {room?.price_levels?.length
-                  ? room.price_levels.map((l) => '$'.repeat(l)).join(' · ')
+                  ? room.price_levels.map(priceLabel).join(' · ')
                   : 'Any price'}
               </p>
             </div>

@@ -87,19 +87,27 @@ def handler(event, context):
 
         if direction == "right":
             member_count = int(room.get("member_count", 1))
-            if room.get("is_solo", False) or member_count == 1:
+            if room.get("is_solo", False):
                 matched = True
-            else:
+            elif member_count >= 2:
                 # Group-ready rule: match when every member has swiped right.
+                # Consistent read: match detection must see the partner's
+                # just-written swipe immediately, not on the next eventually-
+                # consistent replica — otherwise simultaneous right-swipes can
+                # each miss the other and the match is silently never created.
                 swipes = query_pk(
                     f"ROOM#{room_code}",
                     sk_prefix=f"SWIPE#restaurant#{place_id}#",
+                    consistent=True,
                 )
                 right_swipers = {
                     s["partner_id"] for s in swipes
                     if s.get("direction") == "right"
                 }
                 matched = len(right_swipers) >= member_count
+            # else: non-solo room with only 1 member joined so far (partner
+            # hasn't accepted the invite) — there's no one to mutually match
+            # with yet, so `matched` stays False.
 
             if matched:
                 _create_match(room_code, place_id, body, now)

@@ -128,6 +128,45 @@ def test_stale_snapshot_refreshes_from_details(located_room, table, monkeypatch)
     assert item["snapshot_at"] > old
 
 
+def test_stale_refresh_preserves_rating_when_details_omit_it(located_room, table, monkeypatch):
+    code, member_a, member_b = located_room
+    make_match(code, member_a, member_b)  # snapshot rating = 4.6 (CARD_SNAPSHOT)
+
+    old = (datetime.now(timezone.utc) - timedelta(days=45)).isoformat()
+    table.update_item(
+        Key={"PK": f"ROOM#{code}", "SK": "MATCH#restaurant#place-1"},
+        UpdateExpression="SET snapshot_at = :old",
+        ExpressionAttributeValues={":old": old},
+    )
+
+    def fake_http(url, method="GET", body=None, headers=None):
+        if "/media" in url:
+            return None
+        if "/places/place-1" in url:
+            # No "rating" key at all — e.g. a very new or partial listing.
+            # extract_card would default this to 0; the refresh must not
+            # let that spurious 0 clobber the good stored rating.
+            return {
+                "id": "place-1",
+                "displayName": {"text": "Terra Rossa"},
+                "types": ["italian_restaurant"],
+                "location": {"latitude": 30.2663, "longitude": -97.7431},
+                "shortFormattedAddress": "412 Congress Ave, Austin",
+            }
+        return None
+
+    monkeypatch.setattr(places, "_http_json", fake_http)
+
+    handler = load_handler("get_matches")
+    data = body_of(handler(make_event(path_params={"code": code}, member_id=member_a), None))
+
+    assert data["matches"][0]["rating"] == 4.6  # unchanged, not 0
+
+    item = table.get_item(Key={"PK": f"ROOM#{code}", "SK": "MATCH#restaurant#place-1"})["Item"]
+    assert item["rating"] == "4.6"
+    assert item["snapshot_at"] > old  # refresh still happened for other fields
+
+
 def test_fresh_snapshot_not_refreshed(located_room, monkeypatch):
     code, member_a, member_b = located_room
     make_match(code, member_a, member_b)

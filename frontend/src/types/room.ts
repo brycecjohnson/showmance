@@ -22,11 +22,3 @@ export interface Preferences {
   cuisines_disliked: string[];
   price_levels: number[];
 }
-
-export interface RoomState {
-  roomCode: string | null;
-  partnerId: string | null;
-  room: Room | null;
-  isLoading: boolean;
-  error: string | null;
-}

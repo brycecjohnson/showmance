@@ -30,6 +30,14 @@ NEARBY_RESPONSES = {
         fake_place("p-shared", "Fusion House", ["thai_restaurant", "sushi_restaurant"], rating=4.2),
         fake_place("p-thai-expensive", "Thai Royale", ["thai_restaurant"],
                    rating=4.9, price="PRICE_LEVEL_VERY_EXPENSIVE"),
+        # 5 distinct types before the "restaurant" fake_place() always appends
+        # -> extract_card's display "cuisines" truncates to 3 labels, dropping
+        # "ramen_restaurant". A label-based dislike filter would miss this.
+        fake_place("p-thai-many-types", "Noodle Empire",
+                   ["thai_restaurant", "vietnamese_restaurant", "korean_restaurant",
+                    "ramen_restaurant"], rating=4.6),
+        fake_place("p-thai-free", "Free Samples Thai", ["thai_restaurant"],
+                   rating=4.0, price="PRICE_LEVEL_FREE"),
     ],
     "sushi_restaurant": [
         fake_place("p-sushi-1", "Kaiyo", ["sushi_restaurant"], rating=4.8),
@@ -170,3 +178,37 @@ def test_nearby_results_cached_across_calls(located_room, monkeypatch):
 
     assert nearby_calls_first == 1
     assert nearby_calls_second == 1  # served from DynamoDB cache
+
+
+def test_dislike_filter_uses_full_type_set_not_truncated_labels(located_room, monkeypatch):
+    code, member_a, member_b = located_room
+    install_google_stub(monkeypatch)
+
+    # Both like thai and both dislike ramen (dislikes require unanimity —
+    # see _choose_cuisines). "Noodle Empire" is typed
+    # thai+vietnamese+korean+ramen (4 types) — extract_card's display
+    # "cuisines" only keeps the first 3, dropping ramen_restaurant, so a
+    # label-based filter would let it through. Type-based filtering must not.
+    save_prefs(code, member_a, ["thai"], disliked=["ramen"])
+    save_prefs(code, member_b, ["thai"], disliked=["ramen"])
+
+    data = body_of(get_cards(code, member_a))
+    ids = {c["place_id"] for c in data["cards"]}
+    assert "p-thai-many-types" not in ids
+    # Sanity: places without the disliked type still show up
+    assert "p-thai-1" in ids
+
+
+def test_free_places_pass_any_price_filter(located_room, monkeypatch):
+    code, member_a, member_b = located_room
+    install_google_stub(monkeypatch)
+
+    # Cheapest tier only — a $0 (free) place should still be included,
+    # since "budget" filters mean "at most this much", not "exactly this".
+    save_prefs(code, member_a, ["thai"], prices=[1])
+    save_prefs(code, member_b, ["thai"])
+
+    data = body_of(get_cards(code, member_a))
+    ids = {c["place_id"] for c in data["cards"]}
+    assert "p-thai-free" in ids
+    assert "p-thai-expensive" not in ids  # $$$$ correctly still filtered

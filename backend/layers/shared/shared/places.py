@@ -405,6 +405,11 @@ def extract_card(place: dict, origin_lat: float, origin_lng: float) -> Optional[
         "distance_mi": distance,
         "maps_url": place.get("googleMapsUri"),
         "_photo_name": ((place.get("photos") or [{}])[0]).get("name"),
+        # Full, untruncated place types for server-side filtering (e.g.
+        # dislike matching) — "cuisines" above is display-only and capped
+        # to 3 labels, so filters must not key off it. Stripped before the
+        # card reaches the frontend, same as _photo_name.
+        "_types": set(place.get("types", [])),
     }
     if open_now is not None:
         card["open_now"] = bool(open_now)

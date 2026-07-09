@@ -102,7 +102,6 @@ def _refresh_snapshot(code: str, item: dict):
     updates = {
         "name": card["name"],
         "photo_url": photo_url,
-        "rating": str(card["rating"]),
         "price_level": card["price_level"],
         "cuisines": card["cuisines"],
         "address": card["address"],
@@ -111,6 +110,11 @@ def _refresh_snapshot(code: str, item: dict):
         "maps_url": card.get("maps_url"),
         "snapshot_at": now,
     }
+    # extract_card defaults a missing rating to 0 — only write it through if
+    # Google's response actually included one, or a partial/incomplete
+    # Details response would clobber a good stored rating with a spurious 0.
+    if details.get("rating") is not None:
+        updates["rating"] = str(card["rating"])
 
     set_parts = []
     expr_values = {}

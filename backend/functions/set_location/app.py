@@ -58,10 +58,16 @@ def handler(event, context):
         else:
             if not is_valid_lat_lng(lat, lng):
                 return error("lat/lng out of bounds")
+            # Client passes the existing label through on a radius-only edit
+            # (unchanged coordinates) so it isn't clobbered back to the GPS
+            # default — e.g. a geocoded address name would otherwise be lost.
+            label = body.get("label")
+            if not isinstance(label, str) or not (1 <= len(label.strip()) <= 300):
+                label = "Current location"
             location = {
                 "lat": float(lat),
                 "lng": float(lng),
-                "label": "Current location",
+                "label": label.strip(),
             }
 
         # DynamoDB rejects float types — store coordinates as strings and

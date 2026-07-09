@@ -63,20 +63,24 @@ def handler(event, context):
 
         pool = list(seen.values())
 
-        # Price filter (cards with unknown price pass through)
+        # Price filter (cards with unknown price, or that are free, pass
+        # through — a $0 place is within any budget the user set)
         if price_levels:
             pool = [
                 c for c in pool
-                if c["price_level"] is None or c["price_level"] in price_levels
+                if c["price_level"] is None
+                or c["price_level"] == 0
+                or c["price_level"] in price_levels
             ]
 
-        # Drop places matching a cuisine everyone disliked
+        # Drop places matching a cuisine everyone disliked. Match on the raw
+        # Places API types (card["_types"]), not the display "cuisines"
+        # labels — those are capped to 3 entries for the card UI, so a
+        # disliked type on a place with 4+ types could be truncated off
+        # before the label-based filter ever saw it.
         if disliked:
-            disliked_labels = _labels_for(disliked)
-            pool = [
-                c for c in pool
-                if not set(c["cuisines"]) & disliked_labels
-            ]
+            disliked_types = _types_for(disliked)
+            pool = [c for c in pool if not c["_types"] & disliked_types]
 
         # Exclude what this member already swiped
         swiped_item = get_item(f"ROOM#{code}", f"SWIPED#restaurant#{member_id}")
@@ -88,11 +92,13 @@ def handler(event, context):
 
         batch = pool[:BATCH_SIZE]
 
-        # Resolve photos only for the cards we actually return (cached per photo)
+        # Resolve photos only for the cards we actually return (cached per photo);
+        # strip internal fields before they reach the frontend
         for card in batch:
             photo_name = card.pop("_photo_name", None)
             if photo_name:
                 card["photo_url"] = places.resolve_photo_url(photo_name)
+            card.pop("_types", None)
 
         return success({
             "cards": batch,
@@ -132,15 +138,12 @@ def _choose_cuisines(code: str) -> tuple[list[str], set]:
     return sorted(chosen)[:MAX_CUISINE_SEARCHES], disliked_by_all
 
 
-def _labels_for(cuisine_ids: set) -> set:
-    """Display labels produced by the given cuisine ids' place types."""
-    labels = set()
+def _types_for(cuisine_ids: set) -> set:
+    """Raw Places API types produced by the given cuisine ids."""
+    types = set()
     for cuisine_id in cuisine_ids:
-        for place_type in places.CUISINE_PLACE_TYPES.get(cuisine_id, []):
-            label = places.TYPE_DISPLAY_NAMES.get(place_type)
-            if label:
-                labels.add(label)
-    return labels
+        types.update(places.CUISINE_PLACE_TYPES.get(cuisine_id, []))
+    return types
 
 
 def _score(card: dict) -> float:

@@ -76,7 +76,12 @@ export function LocationSetup({
     try {
       const params: SetLocationParams =
         pending.kind === 'gps'
-          ? { lat: pending.lat, lng: pending.lng, radius_m: radiusM }
+          // Always pass the label through: for a fresh GPS pull it's
+          // "Current location" anyway; for an unchanged (radius-only) edit
+          // it preserves whatever label — GPS or geocoded address — the
+          // room already had, instead of the backend defaulting to
+          // "Current location" and clobbering a real address name.
+          ? { lat: pending.lat, lng: pending.lng, label: pending.label, radius_m: radiusM }
           : { address: pending.address, radius_m: radiusM };
       await onSubmit(params);
     } catch {

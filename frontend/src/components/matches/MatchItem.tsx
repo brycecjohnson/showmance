@@ -70,7 +70,7 @@ export function MatchItem({ match, onMarkVisited, onTap }: MatchItemProps) {
               </svg>
               {match.rating.toFixed(1)}
             </span>
-            {match.price_level && (
+            {match.price_level != null && (
               <span className="match-item__price">{priceLabel(match.price_level)}</span>
             )}
             {match.distance_mi !== null && (

@@ -134,7 +134,7 @@ export function TonightsPick({ isOpen, onClose, onPick, onVisited }: TonightsPic
                       </svg>
                       {pick.rating.toFixed(1)}
                     </span>
-                    {pick.price_level && <span>{priceLabel(pick.price_level)}</span>}
+                    {pick.price_level != null && <span>{priceLabel(pick.price_level)}</span>}
                     {pick.distance_mi !== null && <span>{pick.distance_mi.toFixed(1)} mi</span>}
                   </div>
 

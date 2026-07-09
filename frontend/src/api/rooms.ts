@@ -14,6 +14,11 @@ interface JoinRoomResponse {
 export interface SetLocationParams {
   lat?: number;
   lng?: number;
+  /** Display label to keep when resending unchanged lat/lng (e.g. a
+   *  radius-only edit) — without it the backend defaults to "Current
+   *  location", clobbering a geocoded address label. Ignored when `address`
+   *  is set, since the backend derives a fresh label from geocoding. */
+  label?: string;
   address?: string;
   radius_m: number;
 }

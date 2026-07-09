@@ -41,7 +41,8 @@ export const PRICE_LEVELS = [
 ] as const;
 
 export function priceLabel(level: number | null): string {
-  if (!level || level < 1) return '';
+  if (level == null || level < 0) return '';
+  if (level === 0) return 'Free';
   return '$'.repeat(Math.min(level, 4));
 }
 

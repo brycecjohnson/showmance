@@ -102,7 +102,7 @@ export function CardDetail({
                       </span>
                     )}
                   </span>
-                  {card.price_level && (
+                  {card.price_level != null && (
                     <span className="card-detail__price">{priceLabel(card.price_level)}</span>
                   )}
                   {card.distance_mi !== null && (

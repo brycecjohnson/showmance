@@ -22,7 +22,11 @@ export function OnboardingPage() {
   const { roomCode, room, isSolo, updateLocation, loadRoom } = useRoomContext();
   const jumpToStep = (routerLocation.state as { step?: Step } | null)?.step;
   const [step, setStep] = useState<Step>(jumpToStep ?? 'location');
-  const [priceLevels, setPriceLevels] = useState<number[]>([]);
+  // Seed from the room's saved budget so re-entering onboarding mid-flow
+  // (e.g. Settings > Redo tastes, which skips straight to 'cuisines' and
+  // never visits the prices step) doesn't silently wipe it back to "any
+  // price" when handleSavePreferences resubmits price_levels.
+  const [priceLevels, setPriceLevels] = useState<number[]>(room?.price_levels ?? []);
   const [cuisinesLiked, setCuisinesLiked] = useState<string[]>([]);
   const [cuisinesDisliked, setCuisinesDisliked] = useState<string[]>([]);
   const [autoSkipped, setAutoSkipped] = useState(false);

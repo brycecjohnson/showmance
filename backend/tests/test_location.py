@@ -29,6 +29,56 @@ def test_set_location_with_coords(room):
     assert room_data["radius_m"] == 4828
 
 
+def test_radius_only_edit_preserves_a_passed_through_label(room, monkeypatch):
+    # Simulates the frontend's radius-only-edit path: it resends the room's
+    # existing (possibly geocoded) label alongside unchanged coordinates so
+    # the backend doesn't default it back to "Current location".
+    code, member_a, _b = room
+    set_location = load_handler("set_location")
+
+    monkeypatch.setattr(places, "_http_json", lambda url, **k: {
+        "status": "OK",
+        "results": [{
+            "geometry": {"location": {"lat": 30.24, "lng": -97.755}},
+            "formatted_address": "South Congress, Austin, TX",
+        }],
+    })
+    set_location(
+        make_event(
+            body={"address": "south congress austin", "radius_m": 8047},
+            path_params={"code": code},
+            member_id=member_a,
+        ),
+        None,
+    )
+
+    resp = set_location(
+        make_event(
+            body={"lat": 30.24, "lng": -97.755, "label": "South Congress, Austin, TX",
+                  "radius_m": 4828},
+            path_params={"code": code},
+            member_id=member_a,
+        ),
+        None,
+    )
+    assert body_of(resp)["location"]["label"] == "South Congress, Austin, TX"
+
+
+def test_lat_lng_without_label_still_defaults(room):
+    code, member_a, _b = room
+    set_location = load_handler("set_location")
+
+    resp = set_location(
+        make_event(
+            body={"lat": 30.25, "lng": -97.75, "radius_m": 4828},
+            path_params={"code": code},
+            member_id=member_a,
+        ),
+        None,
+    )
+    assert body_of(resp)["location"]["label"] == "Current location"
+
+
 def test_set_location_with_address_geocodes(room, monkeypatch):
     code, member_a, _b = room
     set_location = load_handler("set_location")
